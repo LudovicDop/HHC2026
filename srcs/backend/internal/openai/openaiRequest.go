@@ -19,6 +19,10 @@ type OpenAi struct {
   Request string `json:"Request"`
 }
 
+type Input struct {
+	User_prompt string `json:"user_prompt"`
+	System_prompt string `json:"system_prompt"`
+}
 type PubMedRequestCreation struct {
   Prompt string `json:"prompt"`
 }
@@ -71,6 +75,31 @@ func getClient() *openai.Client {
 	return clientInst
 }
 
+func AiRequest(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		return
+	}
+	var req Input
+
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		http.Error(w, "JSON Invalide", http.StatusBadRequest)
+		return
+	}
+	
+	resp, err := OpenAiRequest(req.User_prompt, req.System_prompt, "gpt-4o-mini")
+	if resp == "" {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(req)
+		return
+	}
+	log.Printf("%+v", req)
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(resp)
+}
+
 func OpenAiRequest(userPrompt string, promptSystem string, model string) (string, error) {
   var ret string = ""
   var err error = nil 
@@ -116,5 +145,4 @@ func OpenAiRequest(userPrompt string, promptSystem string, model string) (string
   ret = resp.Choices[0].Message.Content
   return ret, err 
 }
-
 

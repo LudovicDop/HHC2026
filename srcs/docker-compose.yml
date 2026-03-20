@@ -1,0 +1,59 @@
+services:
+  mariadb:
+    image: mariadb:11
+    container_name: mariadb
+    ports:
+      - "3306:3306"
+    restart: always
+    environment:
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+    env_file:
+      - .env
+    volumes:
+      - ./mariadb/db-init:/docker-entrypoint-initdb.d
+    networks:
+      - ohyeah
+  nginx:
+    image: nginx
+    container_name: nginx
+    ports:
+      - "80:80"
+      - "4430:4430"
+    restart: always
+    volumes:
+      - /run/php:/run/php
+      - ./nginx/website/:/var/www/hhc/
+      # webroot ACME
+      #- /var/www/certbot:/var/www/certbot:ro
+    environment:
+      - WEBSITE=${WEBSITE}
+    networks:
+      - ohyeah
+    depends_on:
+      - backend
+  backend:
+    image: hhc-backend
+    container_name: hhc-backend
+    ports:
+      - "8080:8080"
+    restart: always
+    networks:
+      - ohyeah
+    env_file:
+      - .env
+    environment:
+    - OPENAI_APIKEY=${OPENAI_APIKEY}
+    - DB_HOST=${DB_HOST}
+    - DB_PORT=${DB_PORT}
+    - DB_USER=${DB_USER}
+    - DB_PASSWORD=${DB_PASSWORD}
+    - DB_NAME=${DB_NAME}
+    depends_on:
+      - mariadb
+networks:
+  ohyeah:
+    driver: bridge
+

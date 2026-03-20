@@ -41,22 +41,18 @@ Services exposés :
 - MariaDB : port 3306
 - Nginx : http://localhost:80 (monte `nginx/website/` dans le conteneur)
 
-## API disponible
-- `GET /api/hello` : message de test.
-- `POST /api/ai` : proxy vers OpenAI.
-  - Corps attendu :
-    ```json
-    {
-      "user_prompt": "Bonjour",
-      "system_prompt": "Hello"
-    }
-    ```
-  - Exemple cURL :
-    ```bash
-    curl -X POST http://localhost:8080/api/ai \
-      -H "Content-Type: application/json" \
-      -d '{"user_prompt":"Bonjour","system_prompt":"Hello"}'
-    ```
+## Routes API
+- `GET /api/hello`  
+  Répond un JSON `{"message":"Hello from Go backend!"}` pour tester que le backend tourne.
+- `POST /api/ai`  
+  Proxy vers OpenAI. Corps JSON attendu :
+  ```json
+  {
+    "user_prompt": "Texte utilisateur",
+    "system_prompt": "Contexte système"
+  }
+  ```
+  Retourne le texte généré par le modèle (clé `OPENAI_APIKEY` requise).
 
 ## Lancer le backend sans Docker
 ```bash

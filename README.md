@@ -20,16 +20,3 @@
    # Nginx
    WEBSITE=localhost
    ```
-
-```
-## Routes API
-- `GET /api/hello`  
-  Répond un JSON `{"message":"Hello from Go backend!"}` pour tester que le backend tourne.
-- `POST /api/ai`  
-  Proxy vers OpenAI. Corps JSON attendu :
-  ```json
-  {
-    "user_prompt": "Texte utilisateur",
-    "system_prompt": "Contexte système"
-  }
-  ```

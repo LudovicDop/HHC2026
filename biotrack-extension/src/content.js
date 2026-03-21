@@ -131,3 +131,14 @@ observer.observe(document.documentElement, {
   attributes: true,
   attributeFilter: ['data-patient-id'],
 })
+
+document.addEventListener('click', (e) => {
+  const pill = e.target.closest?.('.biotrack-medtrack-pill')
+  if (!pill) return
+  const slot = pill.closest?.('.agenda-rdv-slot')
+  const patientId = slot?.getAttribute('data-patient-id')
+  if (patientId) {
+    chrome.runtime.sendMessage({ type: 'PATIENT_DETECTED', patientId }).catch(() => {})
+  }
+  chrome.runtime.sendMessage({ type: 'OPEN_BIOTRACK_SIDE_PANEL' }).catch(() => {})
+})

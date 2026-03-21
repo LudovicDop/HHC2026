@@ -1,523 +1,770 @@
 <!DOCTYPE html>
 <html lang="fr">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Rappels vaccin grippe</title>
-    <link rel="stylesheet" href="css/style.css" />
-  </head>
-  <body>
-    <div class="page">
-      <header class="navbar">
-        <div class="doctor">
-          <div class="avatar" aria-hidden="true">CD</div>
-          <div>
-            <p class="eyebrow">Médecin connecté</p>
-            <h1>Dr. Camille Dupont</h1>
-            <p class="muted">Médecin généraliste — Maison de santé Voltaire</p>
-          </div>
-        </div>
-        <div class="summary">
-          <div class="pill">
-            <span class="pill-label">Patients en retard</span>
-            <span id="total-patients" class="pill-value">—</span>
-          </div>
-          <div class="pill accent">
-            <span class="pill-label">Rappels cette semaine</span>
-            <span id="week-patients" class="pill-value">—</span>
-          </div>
-          <div class="pill">
-            <span class="pill-label">Dernière mise à jour</span>
-            <span id="last-refresh" class="pill-value">Juste maintenant</span>
-          </div>
-        </div>
-      </header>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FMT Prevention Intelligence</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap');
 
-      <main class="layout">
-        <section class="card calendar">
-          <div class="card-header">
-            <div>
-              <p class="eyebrow">Rappels vaccin grippe</p>
-              <h2 id="month-label">Calendrier</h2>
-            </div>
-            <div class="actions">
-              <button id="prev-month" class="ghost" aria-label="Mois précédent">←</button>
-              <button id="today" class="ghost">Aujourd'hui</button>
-              <button id="next-month" class="ghost" aria-label="Mois suivant">→</button>
-            </div>
-          </div>
-          <div class="weekdays">
-            <span>Lun</span><span>Mar</span><span>Mer</span><span>Jeu</span><span>Ven</span><span>Sam</span><span>Dim</span>
-          </div>
-          <div id="calendar-grid" class="calendar-grid" role="grid" aria-label="Calendrier des rappels"></div>
-        </section>
+    :root {
+      --bg: #f4f7f9;
+      --surface: #ffffff;
+      --muted-surface: #f7fafc;
+      --text: #0f172a;
+      --muted: #64748b;
+      --border: #e2e8f0;
+      --accent: #0d9488;
+      --accent-strong: #0f172a;
+      --pill-ok: #d1fae5;
+      --pill-ok-text: #047857;
+      --pill-miss: #fef3c7;
+      --pill-miss-text: #b45309;
+      --shadow: 0 1px 2px rgb(15 23 42 / 0.06);
+      --shadow-lg: 0 12px 30px rgb(15 23 42 / 0.08);
+      --radius: 14px;
+    }
 
-        <section class="card patients">
-          <div class="card-header">
-            <div>
-              <p class="eyebrow">Patients à recontacter</p>
-              <h2 id="patient-header">Liste des rappels</h2>
-            </div>
-            <div class="tag" id="selected-date">Tous les rappels</div>
-          </div>
-          <div id="patient-list" class="patient-list" aria-live="polite"></div>
-        </section>
-      </main>
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
+    body {
+      font-family: 'DM Sans', system-ui, -apple-system, sans-serif;
+      min-height: 100vh;
+      color: var(--text);
+      background: radial-gradient(1200px 900px at 20% 10%, #e0f2fe 0, transparent 55%), var(--bg);
+    }
 
-      <div id="patient-modal" class="modal" aria-hidden="true">
-        <div id="modal-overlay" class="modal-overlay"></div>
-        <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="modal-title">
-          <button id="modal-close" class="modal-close" aria-label="Fermer la fiche patient">&times;</button>
-          <div id="modal-content"></div>
-        </div>
+    .page {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 28px 20px 48px;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+
+    h1, h2, h3, p { margin: 0; }
+
+    .glass {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    }
+
+    .header {
+      padding: 22px;
+      display: grid;
+      grid-template-columns: 1.25fr 1fr;
+      gap: 22px;
+      align-items: center;
+    }
+
+    .title { font-size: 28px; font-weight: 700; letter-spacing: -0.02em; }
+    .subtitle { margin-top: 6px; max-width: 680px; font-size: 15px; color: var(--muted); line-height: 1.5; }
+
+    .metric-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 12px;
+    }
+
+    .metric-card {
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px 14px;
+      background: color-mix(in srgb, var(--bg) 55%, var(--surface));
+      box-shadow: var(--shadow);
+    }
+
+    .metric-card .label,
+    .metric-panel .label,
+    .action-card .label { font-size: 12px; color: var(--muted); letter-spacing: 0.02em; text-transform: uppercase; }
+
+    .metric-card .value,
+    .metric-panel .value,
+    .action-card .value {
+      margin-top: 6px;
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      color: var(--text);
+    }
+
+    .metric-card .value { font-size: 22px; }
+    .metric-panel .value { font-size: 26px; }
+    .action-card .value { font-size: 28px; }
+
+    .action-grid {
+      display: grid;
+      gap: 14px;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    }
+
+    .action-card {
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      padding: 16px;
+      box-shadow: var(--shadow);
+    }
+
+    .action-card .sub { margin-top: 6px; font-size: 14px; color: var(--muted); }
+
+    .main-grid {
+      display: grid;
+      gap: 20px;
+      grid-template-columns: minmax(340px, 1.05fr) minmax(420px, 1.2fr);
+    }
+
+    .panel { padding: 18px; }
+    .panel-right { padding: 20px; }
+
+    .section-head {
+      margin-bottom: 14px;
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+      justify-content: space-between;
+      flex-wrap: wrap;
+    }
+
+    .section-head h2 { font-size: 22px; font-weight: 700; }
+    .section-sub { font-size: 14px; color: var(--muted); margin-top: 4px; }
+
+    .controls {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    input[type="text"], select {
+      height: 40px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      padding: 0 12px;
+      font-size: 14px;
+      color: var(--text);
+      outline: none;
+      box-shadow: var(--shadow);
+    }
+
+    input[type="text"]::placeholder { color: #94a3b8; }
+    input[type="text"]:focus, select:focus { border-color: color-mix(in srgb, var(--accent) 30%, var(--border)); }
+
+    .patient-list { display: flex; flex-direction: column; gap: 10px; }
+
+    .patient-btn {
+      width: 100%;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: color-mix(in srgb, var(--bg) 60%, var(--surface));
+      padding: 11px 12px;
+      text-align: left;
+      transition: all 0.18s ease;
+      cursor: pointer;
+      color: var(--text);
+      box-shadow: var(--shadow);
+    }
+
+    .patient-btn:hover { border-color: color-mix(in srgb, var(--accent) 40%, var(--border)); background: var(--surface); }
+    .patient-btn.active {
+      border-color: var(--accent);
+      background: #ecfeff;
+      box-shadow: var(--shadow-lg);
+    }
+
+    .patient-top {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .patient-name { font-size: 15px; font-weight: 700; }
+    .patient-meta { margin-top: 2px; font-size: 12px; color: var(--muted); }
+
+    .mini-stats {
+      margin-top: 0;
+      display: flex;
+      gap: 6px;
+      align-items: center;
+      justify-content: flex-end;
+    }
+
+    .mini-stat {
+      border-radius: 8px;
+      padding: 6px 0 6px 12px;
+      background: transparent;
+      border: none;
+      border-left: 2px solid color-mix(in srgb, var(--accent) 45%, var(--border));
+    }
+
+    .mini-stat .mini-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; }
+    .mini-stat .mini-value { margin-top: 4px; font-weight: 700; }
+
+    .detail-head {
+      margin-bottom: 18px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .detail-kicker { font-size: 13px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; }
+    .detail-name { font-size: 26px; font-weight: 700; letter-spacing: -0.02em; }
+    .detail-meta { margin-top: 4px; font-size: 14px; color: var(--muted); }
+
+    .metric-panels {
+      display: none;
+      margin: 0;
+    }
+
+    .metric-panel {
+      border-radius: 12px;
+      border: 1px solid color-mix(in srgb, var(--border) 65%, transparent);
+      background: color-mix(in srgb, var(--muted-surface) 75%, var(--surface));
+      padding: 14px;
+      box-shadow: none;
+      color: var(--muted);
+      opacity: 0.92;
+    }
+
+    .metric-panel .value {
+      font-size: 20px;
+      font-weight: 600;
+      color: color-mix(in srgb, var(--text) 55%, var(--muted));
+    }
+
+    .indicator-box {
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      padding: 16px;
+      box-shadow: var(--shadow);
+    }
+
+    .indicator-head {
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .indicator-head h3 { font-size: 18px; font-weight: 700; }
+    .indicator-sub { font-size: 14px; color: var(--muted); margin-top: 4px; }
+
+    .reset-btn, .update-btn {
+      border: none;
+      cursor: pointer;
+      transition: 0.18s ease;
+      font: inherit;
+    }
+
+    .reset-btn {
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      padding: 9px 14px;
+      font-size: 14px;
+      color: var(--muted);
+    }
+
+    .reset-btn:hover { border-color: color-mix(in srgb, var(--accent) 30%, var(--border)); }
+
+    .indicator-list { display: flex; flex-direction: column; gap: 10px; }
+
+    .indicator-item {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+      justify-content: space-between;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: color-mix(in srgb, var(--bg) 60%, var(--surface));
+      padding: 14px;
+      box-shadow: var(--shadow);
+    }
+
+    .indicator-title { font-weight: 700; }
+    .indicator-meta { margin-top: 4px; font-size: 13px; color: var(--muted); }
+
+    .indicator-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      border-radius: 999px;
+      padding: 6px 12px;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+    }
+
+    .pill.ok { background: var(--pill-ok); color: var(--pill-ok-text); }
+    .pill.missing { background: var(--pill-miss); color: var(--pill-miss-text); }
+
+    .update-btn {
+      border-radius: 999px;
+      background: var(--accent-strong);
+      color: white;
+      padding: 10px 14px;
+      font-size: 14px;
+      font-weight: 700;
+      box-shadow: var(--shadow-lg);
+    }
+
+    .update-btn:hover { opacity: 0.92; transform: translateY(-1px); }
+
+    .insight-grid {
+      margin-top: 14px;
+      display: grid;
+      gap: 12px;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    }
+
+    .insight-card {
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: color-mix(in srgb, var(--bg) 50%, var(--surface));
+      padding: 14px;
+      box-shadow: var(--shadow);
+    }
+
+    .insight-card .insight-title { font-size: 15px; font-weight: 700; }
+    .insight-card .insight-text { margin-top: 6px; font-size: 14px; line-height: 1.6; color: var(--muted); }
+
+    .empty-state {
+      border-radius: 12px;
+      border: 1px dashed var(--border);
+      padding: 18px;
+      text-align: center;
+      color: var(--muted);
+      background: color-mix(in srgb, var(--bg) 60%, var(--surface));
+    }
+
+    @media (max-width: 1100px) {
+      .header { grid-template-columns: 1fr; }
+      .main-grid { grid-template-columns: 1fr; }
+    }
+
+    @media (max-width: 720px) {
+      .page { padding: 18px 14px 30px; }
+      .header { padding: 18px; }
+      .section-head h2 { font-size: 20px; }
+      .metric-grid, .metric-panels, .action-grid, .mini-stats { grid-template-columns: 1fr; }
+      .detail-name { font-size: 24px; }
+      .controls { width: 100%; }
+      .controls input, .controls select { width: 100%; }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <header class="header glass">
+      <div>
+        <h1 class="title">Cabinet Overview</h1>
+        <p class="subtitle"></p>
       </div>
+      <div class="metric-grid" id="header-metrics"></div>
+    </header>
+
+    <section class="action-grid" id="action-cards"></section>
+
+    <div class="main-grid">
+      <section class="panel glass">
+        <div class="section-head">
+          <div>
+            <h2>Patients prioritaires</h2>
+            <p class="section-sub">Classés par gain potentiel FMT</p>
+          </div>
+          <div class="controls">
+            <input id="searchInput" type="text" placeholder="Rechercher" />
+            <select id="filterSelect">
+              <option>Tous</option>
+              <option>À rattraper</option>
+              <option>À jour</option>
+            </select>
+            <select id="categorySelect">
+              <option>Toutes</option>
+              <option>Vaccination</option>
+              <option>Dépistage</option>
+              <option>Suivi</option>
+            </select>
+          </div>
+        </div>
+        <div class="patient-list" id="patientList"></div>
+      </section>
+
+      <section class="panel panel-right glass">
+        <div class="detail-head">
+          <div>
+            <div class="detail-kicker">Détail patient</div>
+            <h2 class="detail-name" id="detailName"></h2>
+            <div class="detail-meta" id="detailMeta"></div>
+          </div>
+        </div>
+
+        <div class="metric-panels" id="detailMetrics"></div>
+
+        <div class="indicator-box">
+          <div class="indicator-head">
+            <div>
+              <h3>Indicateurs prévention</h3>
+              <p class="indicator-sub">Clique sur “Mettre à jour” pour simuler une action cabinet.</p>
+            </div>
+            <button class="reset-btn" id="resetBtn">Réinitialiser</button>
+          </div>
+
+          <div class="indicator-list" id="indicatorList"></div>
+        </div>
+
+        <div class="insight-grid" id="insights"></div>
+        
+      </section>
     </div>
+  </div>
 
-    <script>
-      const monthLabel = document.getElementById("month-label");
-      const calendarGrid = document.getElementById("calendar-grid");
-      const patientList = document.getElementById("patient-list");
-      const patientHeader = document.getElementById("patient-header");
-      const selectedDateLabel = document.getElementById("selected-date");
-      const totalPatients = document.getElementById("total-patients");
-      const weekPatients = document.getElementById("week-patients");
-      const lastRefresh = document.getElementById("last-refresh");
-      const modal = document.getElementById("patient-modal");
-      const modalContent = document.getElementById("modal-content");
-      const modalOverlay = document.getElementById("modal-overlay");
-      const modalClose = document.getElementById("modal-close");
+  <script>
+    const patients = [
+      {
+        id: "PAT-001",
+        name: "Yvette Bonneau",
+        age: 72,
+        risk: "Élevé",
+        socle: 55,
+        current: 60,
+        potential: 70,
+        gap: 10,
+        status: [
+          { label: "Vaccin grippe", ok: false, gain: 5 },
+          { label: "Mammographie", ok: true, gain: 0 },
+          { label: "Dépistage colorectal", ok: false, gain: 5 },
+        ],
+        action: "Programmer vaccin + FIT",
+      },
+      {
+        id: "PAT-002",
+        name: "Jean-Paul Girard",
+        age: 58,
+        risk: "Modéré",
+        socle: 55,
+        current: 70,
+        potential: 70,
+        gap: 5,
+        status: [
+          { label: "HbA1c", ok: true, gain: 0 },
+          { label: "Fond d'œil", ok: true, gain: 0 },
+          { label: "Vaccin grippe", ok: true, gain: 0 },
+        ],
+        action: "Aucune action prioritaire",
+      },
+      {
+        id: "PAT-003",
+        name: "Véronique Aumont",
+        age: 52,
+        risk: "Élevé",
+        socle: 5,
+        current: 5,
+        potential: 10,
+        gap: 5,
+        status: [
+          { label: "Mammographie", ok: false, gain: 5 },
+          { label: "Vaccin grippe", ok: true, gain: 0 },
+        ],
+        action: "Relancer mammographie",
+      },
+      {
+        id: "PAT-004",
+        name: "Roger Blanchard",
+        age: 68,
+        risk: "Critique",
+        socle: 55,
+        current: 60,
+        potential: 70,
+        gap: 10,
+        status: [
+          { label: "Vaccin grippe", ok: false, gain: 5 },
+          { label: "Fond d'œil", ok: false, gain: 5 },
+          { label: "HbA1c", ok: true, gain: 0 },
+        ],
+        action: "Vaccin + ophtalmo",
+      },
+    ];
 
-      const state = {
-        patients: [],
-        current: new Date(),
-        selectedKey: null,
-        healthMap: {},
-        rdvMap: {},
-        selectedPatient: null,
+    const insights = [
+      {
+        title: "Pourquoi ce patient remonte",
+        text: "Le gain est calculé sur les indicateurs prévention manquants. Chaque rattrapage validé augmente immédiatement le FMT simulé.",
+      },
+      {
+        title: "Comment le tester en démo",
+        text: "Choisis un patient, corrige un vaccin ou un dépistage, puis observe la mise à jour instantanée du gain restant.",
+      },
+      {
+        title: "Plan d’action rapide",
+        text: "Filtre Vaccination, Dépistage ou Suivi pour obtenir une liste ciblée de rappels et lancer les actions du jour.",
+      },
+    ];
+
+    const state = {
+      selectedId: [...patients].sort((a, b) => b.gap - a.gap)[0].id,
+      search: "",
+      filter: "Tous",
+      category: "Toutes",
+      simulatedFixes: {},
+    };
+
+    const els = {
+      headerMetrics: document.getElementById('header-metrics'),
+      actionCards: document.getElementById('action-cards'),
+      patientList: document.getElementById('patientList'),
+      detailName: document.getElementById('detailName'),
+      detailMeta: document.getElementById('detailMeta'),
+      detailMetrics: document.getElementById('detailMetrics'),
+      indicatorList: document.getElementById('indicatorList'),
+      insights: document.getElementById('insights'),
+      searchInput: document.getElementById('searchInput'),
+      filterSelect: document.getElementById('filterSelect'),
+      categorySelect: document.getElementById('categorySelect'),
+      resetBtn: document.getElementById('resetBtn'),
+    };
+
+    function computeCategoryCounts() {
+      return {
+        Vaccination: patients.reduce((sum, p) => sum + p.status.filter((s) => !s.ok && s.label.toLowerCase().includes('vaccin')).length, 0),
+        Dépistage: patients.reduce((sum, p) => sum + p.status.filter((s) => !s.ok && (s.label.toLowerCase().includes('mamm') || s.label.toLowerCase().includes('colorectal'))).length, 0),
+        Suivi: patients.reduce((sum, p) => sum + p.status.filter((s) => !s.ok && (s.label.toLowerCase().includes('hba1c') || s.label.toLowerCase().includes('fond'))).length, 0),
       };
+    }
 
-      const fallbackData = [
-        { id_patient: "P001", prenom: "Lina", nom: "Martin", age: 72, sexe: "F", dernier_vaccin: "2022-09-24" },
-        { id_patient: "P002", prenom: "Yanis", nom: "Bernard", age: 68, sexe: "M", dernier_vaccin: null },
-        { id_patient: "P003", prenom: "Camille", nom: "Durand", age: 75, sexe: "F", dernier_vaccin: "2023-02-15" },
-        { id_patient: "P004", prenom: "Rayan", nom: "Leclerc", age: 63, sexe: "M", dernier_vaccin: "2022-12-02" },
+    function getCategorySeries() {
+      const counts = computeCategoryCounts();
+      return [
+        { label: 'Vaccination', value: counts.Vaccination },
+        { label: 'Dépistage', value: counts.Dépistage },
+        { label: 'Suivi', value: counts.Suivi },
+      ];
+    }
+
+    function getDisplayedPatients() {
+      const topPatients = [...patients].sort((a, b) => b.gap - a.gap);
+      return topPatients.filter((p) => {
+        const matchesSearch = p.name.toLowerCase().includes(state.search.toLowerCase());
+        const matchesFilter =
+          state.filter === 'Tous' ||
+          (state.filter === 'À jour' && p.gap === 0) ||
+          (state.filter === 'À rattraper' && p.gap > 0);
+
+        const matchesCategory =
+          state.category === 'Toutes' ||
+          p.status.some((s) => {
+            const label = s.label.toLowerCase();
+            if (state.category === 'Vaccination') return label.includes('vaccin');
+            if (state.category === 'Dépistage') return label.includes('mamm') || label.includes('colorectal');
+            if (state.category === 'Suivi') return label.includes('hba1c') || label.includes('fond');
+            return true;
+          });
+
+        return matchesSearch && matchesFilter && matchesCategory;
+      });
+    }
+
+    function getSelectedPatient() {
+      return patients.find((p) => p.id === state.selectedId) || patients[0];
+    }
+
+    function getResolvedStatus(selected) {
+      return selected.status.map((item) => {
+        const key = `${selected.id}-${item.label}`;
+        return state.simulatedFixes[key] ? { ...item, ok: true, gain: 0 } : item;
+      });
+    }
+
+    function getResolvedCurrent(selected) {
+      return selected.current + selected.status
+        .filter((item) => {
+          const key = `${selected.id}-${item.label}`;
+          return !item.ok && state.simulatedFixes[key];
+        })
+        .reduce((sum, item) => sum + item.gain, 0);
+    }
+
+    function renderHeaderMetrics() {
+      const totalCurrent = patients.reduce((sum, p) => sum + p.current, 0);
+      const totalPotential = patients.reduce((sum, p) => sum + p.potential, 0);
+      const totalGap = totalPotential - totalCurrent;
+
+      const metrics = [
+        { label: 'Patients', value: String(patients.length) },
+        { label: 'FMT potentiel', value: `${totalPotential} €` },
+        { label: 'FMT (+)', value: `+${totalGap} €` },
       ];
 
-      function toLocalDate(dateString) {
-        const [year, month, day] = dateString.split("-").map(Number);
-        return new Date(year, month - 1, day);
+      els.headerMetrics.innerHTML = metrics.map((item) => `
+        <div class="metric-card">
+          <div class="label">${item.label}</div>
+          <div class="value">${item.value}</div>
+        </div>
+      `).join('');
+    }
+
+    function renderActionCards() {
+      const totalCurrent = patients.reduce((sum, p) => sum + p.current, 0);
+      const totalPotential = patients.reduce((sum, p) => sum + p.potential, 0);
+      const totalGap = totalPotential - totalCurrent;
+      const actionableCount = patients.filter((p) => p.gap > 0).length;
+      const topCategory = [...getCategorySeries()].sort((a, b) => b.value - a.value)[0];
+
+      const cards = [
+        {
+          title: 'Patients à rattraper',
+          value: String(actionableCount),
+          subtitle: `${totalGap} € récupérables`,
+        },
+        {
+          title: 'Levier prioritaire',
+          value: topCategory.label,
+          subtitle: `${topCategory.value} actions à rattraper`,
+        },
+      ];
+
+
+    }
+
+    function renderPatientList() {
+      const displayedPatients = getDisplayedPatients();
+
+      if (!displayedPatients.length) {
+        els.patientList.innerHTML = '<div class="empty-state">Aucun patient ne correspond aux filtres.</div>';
+        return;
       }
 
-      function formatDateKey(date) {
-        const year = date.getFullYear();
-        const month = String(date.getMonth() + 1).padStart(2, "0");
-        const day = String(date.getDate()).padStart(2, "0");
-        return `${year}-${month}-${day}`;
+      if (!displayedPatients.some((p) => p.id === state.selectedId)) {
+        state.selectedId = displayedPatients[0].id;
       }
 
-      function isFluShotOlderThanYear(lastVaccinDate) {
-        if (!lastVaccinDate) return true;
-        const last = toLocalDate(lastVaccinDate);
-        const threshold = new Date();
-        threshold.setFullYear(threshold.getFullYear() - 1);
-        return last < threshold;
-      }
-
-      function computeReminderDates(patient) {
-        const today = new Date();
-        const last = patient.dernier_vaccin ? toLocalDate(patient.dernier_vaccin) : null;
-        const dueDate = last ? new Date(last.setFullYear(last.getFullYear() + 1)) : new Date(today.getFullYear(), today.getMonth(), today.getDate());
-        const displayDate = dueDate < today ? new Date(today.getFullYear(), today.getMonth(), today.getDate()) : dueDate;
-        return { dueDate, displayDate };
-      }
-
-      function enrichPatients(rawPatients) {
-        return rawPatients.map((p) => {
-          const rdvDateStr = state.rdvMap[p.id_patient] || null;
-          const rdvDate = rdvDateStr ? toLocalDate(rdvDateStr) : null;
-          const { dueDate, displayDate } = computeReminderDates(p);
-          const effectiveDate = rdvDate || displayDate;
-          const key = formatDateKey(effectiveDate);
-
-          // Si un RDV est planifié, on l'utilise pour le calendrier et on ne marque pas de retard.
-          const overdue = !rdvDate && dueDate < new Date();
-          const delayDays = overdue ? Math.max(1, Math.round((Date.now() - dueDate.getTime()) / 86400000)) : 0;
-          const health = state.healthMap[p.id_patient] || {};
-          const fluShotOutdated = isFluShotOlderThanYear(p.dernier_vaccin);
-
-          return {
-            ...p,
-            dueDate,
-            reminderDate: effectiveDate,
-            rdv: rdvDate,
-            reminderKey: key,
-            overdue,
-            delayDays,
-            fluShotOutdated,
-            imc: health.imc ?? null,
-            fumeur: health.fumeur ?? null,
-          };
-        });
-      }
-
-      function groupByDate(patients) {
-        return patients.reduce((acc, p) => {
-          acc[p.reminderKey] = acc[p.reminderKey] || [];
-          acc[p.reminderKey].push(p);
-          return acc;
-        }, {});
-      }
-
-      function renderCalendar() {
-        calendarGrid.innerHTML = "";
-
-        const year = state.current.getFullYear();
-        const month = state.current.getMonth();
-        const monthStart = new Date(year, month, 1);
-        const startDay = (monthStart.getDay() + 6) % 7; // lundi = 0
-        const daysInMonth = new Date(year, month + 1, 0).getDate();
-
-        const monthNames = ["Janvier","Février","Mars","Avril","Mai","Juin","Juillet","Août","Septembre","Octobre","Novembre","Décembre"];
-        monthLabel.textContent = `${monthNames[month]} ${year}`;
-
-        const groups = groupByDate(state.patients);
-
-        for (let i = 0; i < startDay; i++) {
-          const spacer = document.createElement("div");
-          spacer.className = "day spacer";
-          calendarGrid.appendChild(spacer);
-        }
-
-        for (let day = 1; day <= daysInMonth; day++) {
-          const date = new Date(year, month, day);
-          const key = formatDateKey(date);
-          const patients = groups[key] || [];
-
-          const cell = document.createElement("button");
-          cell.className = "day";
-          cell.setAttribute("role", "gridcell");
-          cell.setAttribute("aria-label", `${patients.length} rappel(s) le ${day} ${monthNames[month]}`);
-
-          if (formatDateKey(date) === state.selectedKey) {
-            cell.classList.add("selected");
-          }
-          if (formatDateKey(date) === formatDateKey(new Date())) {
-            cell.classList.add("today");
-          }
-          if (patients.length) {
-            cell.classList.add("busy");
-            const badge = document.createElement("span");
-            badge.className = "badge";
-            badge.textContent = patients.length;
-            cell.appendChild(badge);
-          }
-
-          const label = document.createElement("span");
-          label.textContent = day;
-          cell.appendChild(label);
-
-          cell.addEventListener("click", () => {
-            state.selectedKey = key;
-            renderCalendar();
-            renderPatients();
-          });
-
-          calendarGrid.appendChild(cell);
-        }
-      }
-
-      function renderPatients() {
-        patientList.innerHTML = "";
-        const groups = groupByDate(state.patients);
-
-        const patients = state.selectedKey ? groups[state.selectedKey] || [] : state.patients;
-
-        patientHeader.textContent = state.selectedKey ? "Rappels du jour" : "Tous les rappels";
-        selectedDateLabel.textContent = state.selectedKey || "Tous les rappels";
-
-        if (!patients.length) {
-          patientList.innerHTML = "<p class='muted'>Aucun rappel à cette date.</p>";
-          return;
-        }
-
-        patients
-          .sort((a, b) => a.prenom.localeCompare(b.prenom))
-          .forEach((p) => {
-            const item = document.createElement("article");
-            item.className = "patient-card";
-            if (state.selectedPatient && state.selectedPatient.id_patient === p.id_patient) {
-              item.classList.add("selected");
-            }
-
-            const initials = document.createElement("div");
-            initials.className = "initials";
-            initials.textContent = `${p.prenom[0]}${p.nom[0]}`.toUpperCase();
-
-            const details = document.createElement("div");
-            details.className = "patient-details";
-
-            const name = document.createElement("div");
-            name.className = "patient-name";
-            const nameLabel = document.createElement("span");
-            nameLabel.textContent = `${p.prenom} ${p.nom}`;
-            name.appendChild(nameLabel);
-
-            const statusIcon = document.createElement("span");
-            statusIcon.className = `status-icon ${p.fluShotOutdated ? "alert" : "valid"}`;
-            statusIcon.title = p.fluShotOutdated
-              ? "Dernier vaccin grippe il y a plus d'un an"
-              : "Vaccin grippe à jour";
-            statusIcon.textContent = p.fluShotOutdated ? "!" : "✓";
-            name.appendChild(statusIcon);
-
-            name.title = "Voir les détails du patient";
-            name.addEventListener("click", () => {
-              state.selectedPatient = p;
-              renderPatients();
-              openPatientModal(p);
-            });
-
-            const meta = document.createElement("p");
-            meta.className = "muted";
-            meta.textContent = `${p.age} ans · ${p.sexe === "F" ? "Femme" : "Homme"}`;
-            details.append(name, meta);
-
-            const due = document.createElement("div");
-            due.className = "tag";
-            const dueDateLabel = p.reminderDate.toLocaleDateString("fr-FR", { day: "2-digit", month: "short", year: "numeric" });
-            due.textContent = p.rdv ? `RDV le ${dueDateLabel}` : `À rappeler le ${dueDateLabel}`;
-
-            if (p.overdue) {
-              const overdueDate = p.dueDate.toLocaleDateString("fr-FR", { day: "2-digit", month: "short", year: "numeric" });
-              due.classList.add("danger");
-              due.textContent = `En retard (${p.delayDays} j) · dû le ${overdueDate}`;
-            }
-
-            const actions = document.createElement("div");
-            actions.className = "patient-actions";
-
-            const sendBtn = document.createElement("button");
-            sendBtn.className = "mini-btn primary";
-            sendBtn.type = "button";
-            sendBtn.textContent = "Envoyer ordonnance";
-            sendBtn.addEventListener("click", () => {
-              alert(`Ordonnance envoyée à ${p.prenom} ${p.nom} (fictif).`);
-            });
-
-            const doneBtn = document.createElement("button");
-            doneBtn.className = "mini-btn ghost";
-            doneBtn.type = "button";
-            doneBtn.textContent = "Vaccin effectué";
-            doneBtn.addEventListener("click", () => {
-              alert(`Vaccin marqué comme effectué pour ${p.prenom} ${p.nom} (fictif).`);
-            });
-
-            actions.append(sendBtn, doneBtn);
-
-            item.append(initials, details, due, actions);
-            patientList.appendChild(item);
-          });
-      }
-
-      function refreshStats() {
-        totalPatients.textContent = state.patients.length;
-
-        const now = new Date();
-        const endOfWeek = new Date();
-        endOfWeek.setDate(now.getDate() + 7);
-
-        const inWeek = state.patients.filter((p) => p.reminderDate <= endOfWeek).length;
-        weekPatients.textContent = inWeek;
-        lastRefresh.textContent = new Date().toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
-      }
-
-      function renderPatientModalContent(p) {
-        const lastVaccin = p.dernier_vaccin ? new Date(p.dernier_vaccin).toLocaleDateString("fr-FR") : "Jamais vacciné";
-        const rappelDate = p.reminderDate.toLocaleDateString("fr-FR", { day: "2-digit", month: "long", year: "numeric" });
-        const rdvDateLabel = p.rdv ? p.rdv.toLocaleDateString("fr-FR", { day: "2-digit", month: "long", year: "numeric" }) : "Non planifié";
-        const fumeurLabel = p.fumeur === null || p.fumeur === undefined ? "Non renseigné" : p.fumeur ? "Oui" : "Non";
-        const imcLabel = p.imc === null || p.imc === undefined ? "Non renseigné" : p.imc.toFixed(1);
-        const initials = `${p.prenom[0]}${p.nom[0]}`.toUpperCase();
-        const statut = p.overdue ? `En retard (${p.delayDays} j)` : "Rappel planifié";
-        const imcStatus = getImcStatus(p.imc);
-        const vaccinWarning = p.dernier_vaccin ? "Dernier vaccin il y a plus d'un an" : "Jamais vacciné contre la grippe";
-        const upcomingVaccins = p.fluShotOutdated
-          ? `
-            <div class="upcoming-vaccins">
-              <p class="upcoming-title">Vaccins à faire prochainement</p>
-              <ul class="upcoming-list">
-                <li>
-                  <span class="pill mini danger">Grippe</span>
-                  <span class="upcoming-hint">${vaccinWarning}</span>
-                </li>
-              </ul>
+      els.patientList.innerHTML = displayedPatients.map((p) => `
+        <button class="patient-btn ${state.selectedId === p.id ? 'active' : ''}" data-id="${p.id}">
+          <div class="patient-top">
+            <div>
+              <div class="patient-name">${p.name}</div>
+              <div class="patient-meta">${p.id} · ${p.age} ans</div>
             </div>
-          `
-          : "";
-
-        modalContent.innerHTML = `
-          <div class="modal-hero">
-            <div class="modal-header">
-              <div>
-                <p class="eyebrow light">Fiche patient</p>
-                <h3 id="modal-title">${p.prenom} ${p.nom}</h3>
-                <p class="muted light">ID ${p.id_patient} · ${p.age} ans · ${p.sexe === "F" ? "Femme" : "Homme"}</p>
+            <div class="mini-stats">
+              <div class="mini-stat">
+                <div class="mini-label">FMT (+)</div>
+                <div class="mini-value">+${p.gap} €</div>
               </div>
-              <div class="modal-avatar">${initials}</div>
-            </div>
-            <div class="modal-tags">
-              <span class="pill mini soft">${statut}</span>
-              <span class="pill mini soft">${p.rdv ? "RDV" : "Rappel"}: ${rappelDate}</span>
-              <span class="pill mini soft">Dernier vaccin: ${lastVaccin}</span>
-              <span class="pill mini soft">RDV planifié: ${rdvDateLabel}</span>
-            </div>
-            ${upcomingVaccins}
-          </div>
-          <div class="modal-grid">
-            <div class="info-tile ${imcStatus.className}">
-              <p class="label">IMC</p>
-              <p class="value large">${imcLabel}</p>
-              <p class="hint">${imcStatus.helper}</p>
-            </div>
-            <div class="info-tile">
-              <p class="label">Fumeur</p>
-              <p class="value large">${fumeurLabel}</p>
-              <p class="hint">Prévoir un message d'arrêt du tabac si oui</p>
-            </div>
-            <div class="info-tile">
-              <p class="label">Dernier vaccin grippe</p>
-              <p class="value">${lastVaccin}</p>
-              <p class="hint">Remonter l'historique si vous avez un doute</p>
-            </div>
-            <div class="info-tile">
-              <p class="label">Prochain rappel</p>
-              <p class="value">${rappelDate}</p>
-              <p class="hint">${p.overdue ? "Contact à prioriser aujourd'hui" : "Planifier un appel ou un SMS"}</p>
             </div>
           </div>
-          <div class="modal-footer">
-            <button class="mini-btn primary">Envoyer une ordonnance</button>
-            <button class="mini-btn ghost" id="close-modal-secondary">Fermer</button>
+        </button>
+      `).join('');
+
+      els.patientList.querySelectorAll('.patient-btn').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          state.selectedId = btn.dataset.id;
+          render();
+        });
+      });
+    }
+
+    function renderDetail() {
+      const selected = getSelectedPatient();
+      const resolvedStatus = getResolvedStatus(selected);
+      const resolvedCurrent = getResolvedCurrent(selected);
+      const resolvedGap = Math.max(0, selected.potential - resolvedCurrent);
+
+      els.detailName.textContent = selected.name;
+      els.detailMeta.textContent = `${selected.id} · ${selected.age} ans · action recommandée : ${selected.action}`;
+
+      const metrics = [
+        { label: 'Socle', value: `${selected.socle} €` },
+        { label: 'FMT actuel', value: `${resolvedCurrent} €` },
+        { label: 'Gain restant', value: `+${resolvedGap} €` },
+      ];
+
+      els.detailMetrics.innerHTML = metrics.map((item) => `
+        <div class="metric-panel">
+          <div class="label">${item.label}</div>
+          <div class="value">${item.value}</div>
+        </div>
+      `).join('');
+
+      els.indicatorList.innerHTML = resolvedStatus.map((item) => {
+        const key = `${selected.id}-${item.label}`;
+        const initiallyMissing = selected.status.find((s) => s.label === item.label && !s.ok);
+        const meta = item.ok ? 'À jour' : `Non à jour · gain potentiel +${item.gain} €`;
+
+        return `
+          <div class="indicator-item">
+            <div>
+              <div class="indicator-title">${item.label}</div>
+              <div class="indicator-meta">${meta}</div>
+            </div>
+            <div class="indicator-actions">
+              <span class="pill ${item.ok ? 'ok' : 'missing'}">${item.ok ? 'Validé' : 'Manquant'}</span>
+              ${initiallyMissing && !state.simulatedFixes[key] ? `<button class="update-btn" data-key="${key}">Mettre à jour</button>` : ''}
+            </div>
           </div>
         `;
+      }).join('');
 
-        const sendButton = modalContent.querySelector(".modal-footer .mini-btn.primary");
-        if (sendButton) {
-          sendButton.addEventListener("click", () => {
-            alert(`Ordonnance envoyée à ${p.prenom} ${p.nom} (fictif).`);
-          });
-        }
-
-        const closeSecondary = document.getElementById("close-modal-secondary");
-        if (closeSecondary) {
-          closeSecondary.addEventListener("click", closePatientModal);
-        }
-      }
-
-      function getImcStatus(imc) {
-        if (imc === null || imc === undefined) {
-          return { className: "", helper: "IMC non renseigné" };
-        }
-        if (imc >= 30) {
-          return { className: "danger", helper: "Obésité : suivi renforcé conseillé" };
-        }
-        if (imc >= 25) {
-          return { className: "warning", helper: "Surpoids léger : vigilance" };
-        }
-        if (imc >= 18.5) {
-          return { className: "ok", helper: "Zone de confort" };
-        }
-        return { className: "warning", helper: "IMC bas : vérifier l'état nutritionnel" };
-      }
-
-      async function loadHealthData() {
-        try {
-          const res = await fetch("/api/patients/imc-fumeur");
-          if (!res.ok) throw new Error("Requête API échouée");
-          const data = await res.json();
-          state.healthMap = data.reduce((acc, item) => {
-            acc[item.id_patient] = { imc: item.imc ?? null, fumeur: item.fumeur ?? null };
-            return acc;
-          }, {});
-        } catch (err) {
-          console.warn("Impossible de charger les données IMC/fumeur", err);
-          state.healthMap = {};
-        }
-      }
-
-      async function loadRdvData(patientIds) {
-        const rdvMap = {};
-        const requests = patientIds.map(async (id) => {
-          try {
-            const res = await fetch(`/api/patients/rdv?id=${encodeURIComponent(id)}`);
-            if (!res.ok) throw new Error("Requête API échouée");
-            const data = await res.json();
-            rdvMap[id] = data.rdv || null;
-          } catch (err) {
-            console.warn(`Impossible de charger le RDV pour ${id}`, err);
-            rdvMap[id] = null;
-          }
+      els.indicatorList.querySelectorAll('.update-btn').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const key = btn.dataset.key;
+          state.simulatedFixes[key] = true;
+          renderDetail();
         });
-
-        await Promise.all(requests);
-        return rdvMap;
-      }
-
-      async function loadPatients() {
-        await loadHealthData();
-        try {
-          const res = await fetch("/api/patients/grippe/retard");
-          if (!res.ok) throw new Error("Requête API échouée");
-          const data = await res.json();
-          const patientIds = data.map((p) => p.id_patient);
-          state.rdvMap = await loadRdvData(patientIds);
-          state.patients = enrichPatients(data);
-        } catch (err) {
-          console.warn("API indisponible, utilisation des données fictives", err);
-          state.patients = enrichPatients(fallbackData);
-        }
-        refreshStats();
-        renderCalendar();
-        renderPatients();
-      }
-
-      function openPatientModal(p) {
-        renderPatientModalContent(p);
-        modal.classList.add("active");
-        modal.setAttribute("aria-hidden", "false");
-        document.body.style.overflow = "hidden";
-      }
-
-      function closePatientModal() {
-        modal.classList.remove("active");
-        modal.setAttribute("aria-hidden", "true");
-        document.body.style.overflow = "";
-      }
-
-      modalOverlay.addEventListener("click", closePatientModal);
-      modalClose.addEventListener("click", closePatientModal);
-      document.addEventListener("keydown", (event) => {
-        if (event.key === "Escape" && modal.classList.contains("active")) {
-          closePatientModal();
-        }
       });
+    }
 
-      document.getElementById("prev-month").addEventListener("click", () => {
-        state.current.setMonth(state.current.getMonth() - 1);
-        renderCalendar();
-      });
-      document.getElementById("next-month").addEventListener("click", () => {
-        state.current.setMonth(state.current.getMonth() + 1);
-        renderCalendar();
-      });
-      document.getElementById("today").addEventListener("click", () => {
-        state.current = new Date();
-        state.selectedKey = formatDateKey(new Date());
-        renderCalendar();
-        renderPatients();
-      });
+    function renderInsights() {
+      els.insights.innerHTML = insights.map((item) => `
+        <div class="insight-card">
+          <div class="insight-title">${item.title}</div>
+          <div class="insight-text">${item.text}</div>
+        </div>
+      `).join('');
+    }
 
-      loadPatients();
-    </script>
-  </body>
+    function render() {
+      renderHeaderMetrics();
+      renderActionCards();
+      renderPatientList();
+      renderDetail();
+    }
+
+    els.searchInput.addEventListener('input', (e) => {
+      state.search = e.target.value;
+      render();
+    });
+
+    els.filterSelect.addEventListener('change', (e) => {
+      state.filter = e.target.value;
+      render();
+    });
+
+    els.categorySelect.addEventListener('change', (e) => {
+      state.category = e.target.value;
+      render();
+    });
+
+    els.resetBtn.addEventListener('click', () => {
+      state.simulatedFixes = {};
+      renderDetail();
+    });
+
+    render();
+  </script>
+</body>
 </html>

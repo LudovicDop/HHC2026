@@ -149,9 +149,6 @@ LEFT JOIN vaccinations v
     ON p.id_patient = v.id_patient
     AND v.type_vaccin = 'grippe'
 GROUP BY p.id_patient, p.prenom, p.nom, p.age, p.sexe
-HAVING 
-    dernier_vaccin IS NULL 
-    OR dernier_vaccin < DATE_SUB(CURDATE(), INTERVAL 1 YEAR)
 ORDER BY dernier_vaccin ASC`
 
 	rows, err := database.Db.Query(query)

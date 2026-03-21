@@ -115,6 +115,14 @@
         return `${year}-${month}-${day}`;
       }
 
+      function isFluShotOlderThanYear(lastVaccinDate) {
+        if (!lastVaccinDate) return true;
+        const last = toLocalDate(lastVaccinDate);
+        const threshold = new Date();
+        threshold.setFullYear(threshold.getFullYear() - 1);
+        return last < threshold;
+      }
+
       function computeReminderDates(patient) {
         const today = new Date();
         const last = patient.dernier_vaccin ? toLocalDate(patient.dernier_vaccin) : null;
@@ -135,6 +143,7 @@
           const overdue = !rdvDate && dueDate < new Date();
           const delayDays = overdue ? Math.max(1, Math.round((Date.now() - dueDate.getTime()) / 86400000)) : 0;
           const health = state.healthMap[p.id_patient] || {};
+          const fluShotOutdated = isFluShotOlderThanYear(p.dernier_vaccin);
 
           return {
             ...p,
@@ -144,6 +153,7 @@
             reminderKey: key,
             overdue,
             delayDays,
+            fluShotOutdated,
             imc: health.imc ?? null,
             fumeur: health.fumeur ?? null,
           };
@@ -248,7 +258,18 @@
 
             const name = document.createElement("div");
             name.className = "patient-name";
-            name.textContent = `${p.prenom} ${p.nom}`;
+            const nameLabel = document.createElement("span");
+            nameLabel.textContent = `${p.prenom} ${p.nom}`;
+            name.appendChild(nameLabel);
+
+            const statusIcon = document.createElement("span");
+            statusIcon.className = `status-icon ${p.fluShotOutdated ? "alert" : "valid"}`;
+            statusIcon.title = p.fluShotOutdated
+              ? "Dernier vaccin grippe il y a plus d'un an"
+              : "Vaccin grippe à jour";
+            statusIcon.textContent = p.fluShotOutdated ? "!" : "✓";
+            name.appendChild(statusIcon);
+
             name.title = "Voir les détails du patient";
             name.addEventListener("click", () => {
               state.selectedPatient = p;
@@ -319,6 +340,20 @@
         const initials = `${p.prenom[0]}${p.nom[0]}`.toUpperCase();
         const statut = p.overdue ? `En retard (${p.delayDays} j)` : "Rappel planifié";
         const imcStatus = getImcStatus(p.imc);
+        const vaccinWarning = p.dernier_vaccin ? "Dernier vaccin il y a plus d'un an" : "Jamais vacciné contre la grippe";
+        const upcomingVaccins = p.fluShotOutdated
+          ? `
+            <div class="upcoming-vaccins">
+              <p class="upcoming-title">Vaccins à faire prochainement</p>
+              <ul class="upcoming-list">
+                <li>
+                  <span class="pill mini danger">Grippe</span>
+                  <span class="upcoming-hint">${vaccinWarning}</span>
+                </li>
+              </ul>
+            </div>
+          `
+          : "";
 
         modalContent.innerHTML = `
           <div class="modal-hero">
@@ -336,6 +371,7 @@
               <span class="pill mini soft">Dernier vaccin: ${lastVaccin}</span>
               <span class="pill mini soft">RDV planifié: ${rdvDateLabel}</span>
             </div>
+            ${upcomingVaccins}
           </div>
           <div class="modal-grid">
             <div class="info-tile ${imcStatus.className}">

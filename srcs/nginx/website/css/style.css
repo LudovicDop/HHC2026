@@ -301,6 +301,34 @@ button.ghost {
   font-weight: 700;
   font-size: 16px;
   cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.status-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  font-size: 11px;
+  font-weight: 800;
+  border: 1px solid;
+  box-shadow: 0 4px 10px rgba(15, 23, 42, 0.12);
+}
+
+.status-icon.alert {
+  background: linear-gradient(135deg, #ffe7e4, #ffd8d3);
+  border-color: rgba(255, 83, 73, 0.6);
+  color: #b02c25;
+}
+
+.status-icon.valid {
+  background: linear-gradient(135deg, #e6f6ec, #d5f0e3);
+  border-color: rgba(46, 204, 113, 0.6);
+  color: #1f8a4b;
 }
 
 .tag {
@@ -504,6 +532,44 @@ button.ghost {
   background: rgba(255, 59, 48, 0.12);
   border-color: rgba(255, 59, 48, 0.3);
   color: #b02c25;
+}
+
+.upcoming-vaccins {
+  margin-top: 12px;
+  padding: 12px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.68);
+  border: 1px solid rgba(226, 232, 240, 0.8);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
+}
+
+.upcoming-title {
+  margin: 0 0 8px;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+}
+
+.upcoming-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.upcoming-list li {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 700;
+}
+
+.upcoming-hint {
+  color: var(--muted);
+  font-weight: 500;
 }
 
 .modal-grid {

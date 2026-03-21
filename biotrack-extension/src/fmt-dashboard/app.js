@@ -1,5 +1,7 @@
 import {
+  AGENDA_DEMO,
   CABINET_DEMO,
+  DOSSIER_PATIENT_BASE_URL,
   MOCK_PATIENTS,
 } from './mockPatients.js'
 import {
@@ -7,10 +9,13 @@ import {
   enrichPatient,
   EUR_PREVENTION_PER_GAP,
   FMT_FLOOR_NOT_SEEN_EUR,
+  funnelStats,
+  indicatorEligible,
   INDICATOR_LABELS,
   MONTHS_VISIT_FORFAIT_LOSS,
   MONTHS_VISIT_WARNING,
   reminderText,
+  statsPerCriterion,
 } from './fmtModel.js'
 
 function formatDate(iso) {
@@ -41,10 +46,10 @@ function vaccineMissing(p) {
 
 function applyFilter(list, filterId) {
   if (filterId === 'perte50') {
-    return list.filter((p) => p._total > 50)
+    return list.filter((x) => x._total > 50)
   }
   if (filterId === 'vaccin') {
-    return list.filter((p) => vaccineMissing(p))
+    return list.filter((x) => vaccineMissing(x))
   }
   return list
 }
@@ -81,6 +86,8 @@ export function initFmtDashboard(root) {
   let selectedId = null
   let filterId = 'all'
   let showFinancials = false
+  /** @type {string | null} */
+  let expandedCriterionKey = null
   const cabinet = { ...CABINET_DEMO }
 
   const toast = document.createElement('div')
@@ -96,6 +103,23 @@ export function initFmtDashboard(root) {
       toast.classList.remove('fmt-toast--show')
     }, 2600)
   }
+
+  async function openDossier(patientId) {
+    const base = DOSSIER_PATIENT_BASE_URL?.trim()
+    if (base) {
+      const url = base.endsWith('/') ? `${base}${patientId}` : `${base}/${patientId}`
+      window.open(url, '_blank', 'noopener,noreferrer')
+      return
+    }
+    try {
+      await navigator.clipboard.writeText(patientId)
+      showToast('ID copié — ouvrir le dossier dans le logiciel métier')
+    } catch {
+      showToast(`ID patient : ${patientId}`)
+    }
+  }
+
+  const funnel = funnelStats(MOCK_PATIENTS)
 
   root.innerHTML = `
     <div class="fmt-shell">
@@ -127,6 +151,33 @@ export function initFmtDashboard(root) {
             <p class="fmt-admin-card__hint">Laboratoires, médecins, pharmacies</p>
           </li>
         </ul>
+      </section>
+
+      <div class="fmt-agenda-banner" role="status">
+        <p class="fmt-agenda-banner__line">
+          <strong>Ordre du jour (démo)</strong> : ${AGENDA_DEMO.rendezVousAujourdhui} rendez-vous prévus aujourd’hui.
+        </p>
+        <p class="fmt-agenda-banner__line">
+          <strong>Période affichée</strong> : ${AGENDA_DEMO.periodeLibelle}
+        </p>
+      </div>
+
+      <section class="fmt-funnel" aria-label="Vue d’ensemble patients">
+        <article class="fmt-funnel-card">
+          <p class="fmt-funnel-card__label">Patients total</p>
+          <p class="fmt-funnel-card__value">${funnel.total}</p>
+          <p class="fmt-funnel-card__hint">Effectif de la liste chargée</p>
+        </article>
+        <article class="fmt-funnel-card">
+          <p class="fmt-funnel-card__label">Éligibles prévention FMT</p>
+          <p class="fmt-funnel-card__value">${funnel.eligiblePrevention}</p>
+          <p class="fmt-funnel-card__hint">Au moins un critère « part variable » applicable</p>
+        </article>
+        <article class="fmt-funnel-card">
+          <p class="fmt-funnel-card__label">À traiter</p>
+          <p class="fmt-funnel-card__value">${funnel.withAnyGap}</p>
+          <p class="fmt-funnel-card__hint">Éligibles avec au moins un indicateur manquant</p>
+        </article>
       </section>
 
       <header class="fmt-header">
@@ -171,12 +222,25 @@ export function initFmtDashboard(root) {
         <button type="button" class="fmt-btn fmt-btn-primary" id="fmt-reminder" disabled>Générer rappel patient</button>
       </div>
 
-      <div class="fmt-table-wrap">
-        <table class="fmt-table" id="fmt-table">
-          <thead id="fmt-thead"></thead>
-          <tbody id="fmt-tbody"></tbody>
-        </table>
-      </div>
+      <section class="fmt-criteria-section" aria-labelledby="fmt-criteria-title">
+        <h2 id="fmt-criteria-title" class="fmt-criteria-section__title">Tableau par critère</h2>
+        <p class="fmt-criteria-hint">
+          Cliquez sur une ligne pour afficher le suivi des patients éligibles à ce critère et leurs informations médicales.
+          Les filtres ci-dessus s’appliquent au panneau ouvert.
+        </p>
+        <div class="fmt-table-wrap">
+          <table class="fmt-table-criteria" id="fmt-table-criteria">
+            <thead>
+              <tr>
+                <th>Indicateur</th>
+                <th>Patients éligibles</th>
+                <th>Manquants</th>
+              </tr>
+            </thead>
+            <tbody id="fmt-tbody-criteria"></tbody>
+          </table>
+        </div>
+      </section>
 
       <p class="fmt-footnote" id="fmt-footnote"></p>
     </div>
@@ -185,8 +249,7 @@ export function initFmtDashboard(root) {
   const kpisEl = root.querySelector('#fmt-kpis')
   const financialPanel = root.querySelector('#fmt-financial-panel')
   const financialToggle = root.querySelector('#fmt-financial-toggle')
-  const thead = root.querySelector('#fmt-thead')
-  const tbody = root.querySelector('#fmt-tbody')
+  const tbodyCriteria = root.querySelector('#fmt-tbody-criteria')
   const filterEl = root.querySelector('#fmt-filter')
   const reminderBtn = root.querySelector('#fmt-reminder')
   const footnoteEl = root.querySelector('#fmt-footnote')
@@ -218,6 +281,201 @@ export function initFmtDashboard(root) {
     }
   })
 
+  root.addEventListener('click', (e) => {
+    const btn = e.target.closest?.('[data-dossier-id]')
+    if (!btn) return
+    e.preventDefault()
+    e.stopPropagation()
+    const id = btn.getAttribute('data-dossier-id')
+    if (id) void openDossier(id)
+  })
+
+  function buildSuiviTable(theadEl, tbodyEl, patients, showEur) {
+    const thEur = showEur ? '<th>Manque à gagner</th>' : ''
+    theadEl.innerHTML = `
+      <tr>
+        <th>Indicateurs</th>
+        <th>Statut</th>
+        <th>Profil</th>
+        ${thEur}
+        <th>Dossier</th>
+      </tr>
+    `
+    tbodyEl.replaceChildren()
+    for (const p of patients) {
+      const tr = document.createElement('tr')
+      tr.dataset.id = p.id
+      tr.dataset.selected = String(p.id === selectedId)
+      const pill = visitPill(p)
+      const eurCell = showEur
+        ? `<td class="fmt-eur">${formatEur(p._total)}</td>`
+        : '<td class="fmt-eur" style="color:var(--muted)">—</td>'
+
+      const badgesHtml =
+        p._manquants.length === 0
+          ? '<span style="color:var(--muted)">À jour</span>'
+          : p._manquants
+              .map(
+                (k) =>
+                  `<span class="fmt-badge">${INDICATOR_LABELS[k]}</span>`,
+              )
+              .join(' ')
+
+      tr.innerHTML = `
+        <td><div class="fmt-badges" style="gap:0.4rem">${badgesHtml}</div></td>
+        <td><span class="${pill.className}">${pill.text}</span></td>
+        <td class="fmt-profil-cell">
+          <strong>${p.prenom} ${p.nom}</strong>
+          <span class="fmt-profil-meta">${p.id} · ${formatDate(p.derniereVisite)}</span>
+          <span class="fmt-profil-meta">${p.age} ans · ${p.sexe === 'F' ? 'F' : 'M'}${p.ald ? ' · ALD' : ''}${p.c2s ? ' · C2S' : ''}${p.diabetique ? ' · Diabète' : ''}</span>
+        </td>
+        ${eurCell}
+        <td>
+          <button type="button" class="fmt-btn fmt-btn--sm" data-dossier-id="${p.id}">Dossier</button>
+        </td>
+      `
+
+      tr.addEventListener('click', (ev) => {
+        if (ev.target.closest('[data-dossier-id]')) return
+        selectedId = p.id === selectedId ? null : p.id
+        render()
+      })
+
+      tbodyEl.append(tr)
+    }
+  }
+
+  function buildMedicalTable(tbodyEl, patients) {
+    tbodyEl.replaceChildren()
+    for (const p of patients) {
+      const tr = document.createElement('tr')
+      const syn = p.syntheseMedicale ?? '—'
+      const pts = p.pointsAttention ?? '—'
+      tr.innerHTML = `
+        <td class="fmt-profil-cell"><strong>${p.prenom} ${p.nom}</strong><span class="fmt-profil-meta">${p.id}</span></td>
+        <td><div class="fmt-medical-note">${syn}</div></td>
+        <td><div class="fmt-medical-sub">${pts}</div></td>
+        <td>
+          <button type="button" class="fmt-btn fmt-btn--sm" data-dossier-id="${p.id}">Dossier</button>
+        </td>
+      `
+      tbodyEl.append(tr)
+    }
+  }
+
+  function renderCriteriaTable() {
+    const stats = statsPerCriterion(MOCK_PATIENTS)
+    const enrichedAll = MOCK_PATIENTS.map((p) => enrichPatient(p))
+
+    tbodyCriteria.replaceChildren()
+
+    for (const row of stats) {
+      const isOpen = expandedCriterionKey === row.key
+
+      const trMaster = document.createElement('tr')
+      trMaster.className = `fmt-crit-master${isOpen ? ' fmt-crit-master--open' : ''}`
+      trMaster.dataset.criterionKey = row.key
+      trMaster.setAttribute('role', 'button')
+      trMaster.tabIndex = 0
+      trMaster.setAttribute('aria-expanded', String(isOpen))
+      trMaster.innerHTML = `
+        <td>
+          <span class="fmt-crit-chevron" aria-hidden="true">${isOpen ? '▼' : '▶'}</span>
+          <strong>${row.label}</strong>
+        </td>
+        <td>${row.eligibleCount}</td>
+        <td>${row.missingCount}</td>
+      `
+
+      const activate = () => {
+        const next = expandedCriterionKey === row.key ? null : row.key
+        if (next !== expandedCriterionKey) selectedId = null
+        expandedCriterionKey = next
+        render()
+      }
+
+      trMaster.addEventListener('click', activate)
+      trMaster.addEventListener('keydown', (ev) => {
+        if (ev.key === 'Enter' || ev.key === ' ') {
+          ev.preventDefault()
+          activate()
+        }
+      })
+
+      tbodyCriteria.append(trMaster)
+
+      const trPanel = document.createElement('tr')
+      trPanel.className = 'fmt-crit-panel'
+      trPanel.hidden = !isOpen
+
+      const td = document.createElement('td')
+      td.colSpan = 3
+      td.className = 'fmt-crit-panel-cell'
+
+      if (isOpen) {
+        const pool = enrichedAll.filter((p) => indicatorEligible(row.key, p))
+        const filtered = applyFilter(pool, filterId)
+
+        const inner = document.createElement('div')
+        inner.className = 'fmt-crit-panel-inner'
+
+        const suiviWrap = document.createElement('div')
+        const hSuivi = document.createElement('h3')
+        hSuivi.className = 'fmt-subsection-title'
+        hSuivi.textContent = 'Suivi patients (critère sélectionné)'
+        suiviWrap.append(hSuivi)
+
+        const twSuivi = document.createElement('div')
+        twSuivi.className = 'fmt-table-wrap'
+        const tblSuivi = document.createElement('table')
+        tblSuivi.className = 'fmt-table fmt-table--interactive'
+        const theadSuivi = document.createElement('thead')
+        const tbodySuivi = document.createElement('tbody')
+        tblSuivi.append(theadSuivi, tbodySuivi)
+        twSuivi.append(tblSuivi)
+        suiviWrap.append(twSuivi)
+
+        buildSuiviTable(theadSuivi, tbodySuivi, filtered, showFinancials)
+
+        const medWrap = document.createElement('div')
+        const hMed = document.createElement('h3')
+        hMed.className = 'fmt-subsection-title'
+        hMed.textContent = 'Informations médicales précises'
+        medWrap.append(hMed)
+
+        const twMed = document.createElement('div')
+        twMed.className = 'fmt-table-wrap'
+        const tblMed = document.createElement('table')
+        tblMed.className = 'fmt-table'
+        tblMed.innerHTML = `
+          <thead>
+            <tr>
+              <th>Patient</th>
+              <th>Synthèse</th>
+              <th>Points d’attention</th>
+              <th>Dossier</th>
+            </tr>
+          </thead>
+        `
+        const tbodyMed = document.createElement('tbody')
+        tblMed.append(tbodyMed)
+        twMed.append(tblMed)
+        medWrap.append(twMed)
+
+        const rawForMed = filtered.map((p) =>
+          MOCK_PATIENTS.find((x) => x.id === p.id) ?? p,
+        )
+        buildMedicalTable(tbodyMed, rawForMed)
+
+        inner.append(suiviWrap, medWrap)
+        td.append(inner)
+      }
+
+      trPanel.append(td)
+      tbodyCriteria.append(trPanel)
+    }
+  }
+
   function render() {
     financialPanel.hidden = !showFinancials
     financialToggle.setAttribute('aria-expanded', String(showFinancials))
@@ -239,7 +497,6 @@ export function initFmtDashboard(root) {
     filterEl.value = filterId
 
     const enriched = MOCK_PATIENTS.map((p) => enrichPatient(p))
-    const filtered = applyFilter(enriched, filterId)
     const kpis = aggregateKpis(enriched, cabinet)
 
     kpisEl.innerHTML = `
@@ -260,75 +517,21 @@ export function initFmtDashboard(root) {
       </article>
     `
 
-    const thEur = showFinancials ? '<th>Manque à gagner</th>' : ''
-    thead.innerHTML = `
-      <tr>
-        <th>Patient</th>
-        <th>Profil</th>
-        <th>Dernière visite</th>
-        <th>Statut</th>
-        <th>Indicateurs manquants</th>
-        ${thEur}
-      </tr>
-    `
-
     footnoteEl.textContent = showFinancials
       ? 'Données de démonstration. Les montants et règles d’éligibilité doivent être validés avec les textes officiels et votre caisse. Intégration agenda / dossier : à brancher sur votre back (ex. export JSON Go).'
       : 'Données de démonstration. Intégration agenda / dossier : à brancher sur votre back (ex. export JSON Go).'
 
-    tbody.replaceChildren()
-    for (const p of filtered) {
-      const tr = document.createElement('tr')
-      tr.dataset.id = p.id
-      tr.dataset.selected = String(p.id === selectedId)
-      const pill = visitPill(p)
-      const eurCell = showFinancials ? `<td class="fmt-eur">${formatEur(p._total)}</td>` : ''
+    renderCriteriaTable()
 
-      tr.innerHTML = `
-        <td>
-          <strong>${p.prenom} ${p.nom}</strong><br />
-          <span style="color:var(--muted);font-size:0.72rem">${p.id}</span>
-        </td>
-        <td>
-          ${p.age} ans · ${p.sexe === 'F' ? 'F' : 'M'}
-          ${p.ald ? ' · <strong>ALD</strong>' : ''}
-          ${p.c2s ? ' · <strong>C2S</strong>' : ''}
-          ${p.diabetique ? ' · <strong>Diabète</strong>' : ''}
-        </td>
-        <td>${formatDate(p.derniereVisite)}</td>
-        <td><span class="${pill.className}">${pill.text}</span></td>
-        <td class="fmt-badges-cell"></td>
-        ${eurCell}
-      `
-
-      const badgesCell = tr.querySelector('.fmt-badges-cell')
-      const wrap = document.createElement('div')
-      wrap.className = 'fmt-badges'
-      if (p._manquants.length === 0) {
-        const s = document.createElement('span')
-        s.style.color = 'var(--muted)'
-        s.style.fontSize = '0.75rem'
-        s.textContent = '—'
-        wrap.append(s)
-      } else {
-        for (const key of p._manquants) {
-          const b = document.createElement('span')
-          b.className = 'fmt-badge'
-          b.textContent = INDICATOR_LABELS[key]
-          wrap.append(b)
-        }
-      }
-      badgesCell.append(wrap)
-
-      tr.addEventListener('click', () => {
-        selectedId = p.id === selectedId ? null : p.id
-        render()
-      })
-
-      tbody.append(tr)
+    let panelPatients = []
+    if (expandedCriterionKey) {
+      const pool = enriched.filter((p) => indicatorEligible(expandedCriterionKey, p))
+      panelPatients = applyFilter(pool, filterId)
     }
-
-    reminderBtn.disabled = !selectedId
+    const canRemind =
+      Boolean(selectedId) &&
+      panelPatients.some((p) => p.id === selectedId)
+    reminderBtn.disabled = !canRemind
   }
 
   render()

@@ -1,4 +1,14 @@
 /** Jeu de démo — même forme qu’un futur export JSON Go. */
+
+/** Si renseigné (ex. URL LGC), le bouton Dossier ouvre un onglet ; sinon copie de l’id. */
+export const DOSSIER_PATIENT_BASE_URL = ''
+
+/** Bandeau ordre du jour / période — à remplacer par API agenda. */
+export const AGENDA_DEMO = {
+  rendezVousAujourdhui: 12,
+  periodeLibelle: 'Année civile 2026 (indicatif)',
+}
+
 export const CABINET_DEMO = {
   jeuneInstalleZip: true,
   medecinPlus67Ans: false,
@@ -16,6 +26,9 @@ export const MOCK_PATIENTS = [
     diabetique: false,
     derniereVisite: '2022-04-10',
     indicateursFaits: { mammographie: true },
+    syntheseMedicale:
+      'HTA longue évolution, risque cardiovasculaire modéré. Dernière visite ancienne : risque de perte de forfait.',
+    pointsAttention: 'Visite à programmer en priorité ; dépistages à jour partiels.',
   },
   {
     id: 'P-002',
@@ -28,6 +41,8 @@ export const MOCK_PATIENTS = [
     diabetique: true,
     derniereVisite: '2025-01-15',
     indicateursFaits: { grippe: true, hba1c: true },
+    syntheseMedicale: 'Diabète type 2 équilibré ; suivi HbA1c régulier.',
+    pointsAttention: 'Vaccination complète à maintenir selon calendrier.',
   },
   {
     id: 'P-003',
@@ -40,6 +55,8 @@ export const MOCK_PATIENTS = [
     diabetique: false,
     derniereVisite: '2025-11-01',
     indicateursFaits: {},
+    syntheseMedicale: 'Patient en précarité (C2S) ; suivi prévention à renforcer.',
+    pointsAttention: 'Dépistages selon tranche d’âge.',
   },
   {
     id: 'P-004',
@@ -52,6 +69,8 @@ export const MOCK_PATIENTS = [
     diabetique: false,
     derniereVisite: '2023-08-20',
     indicateursFaits: { covid: true },
+    syntheseMedicale: 'ALD stable ; dernière consultation > 18 mois.',
+    pointsAttention: 'Relance vaccins ciblés ALD.',
   },
   {
     id: 'P-005',
@@ -64,6 +83,8 @@ export const MOCK_PATIENTS = [
     diabetique: false,
     derniereVisite: '2025-12-01',
     indicateursFaits: { m9: true },
+    syntheseMedicale: 'Nourrisson ; suivi M9 réalisé, M24 à planifier.',
+    pointsAttention: 'Calendrier puériculture.',
   },
   {
     id: 'P-006',
@@ -76,6 +97,8 @@ export const MOCK_PATIENTS = [
     diabetique: false,
     derniereVisite: '2025-06-10',
     indicateursFaits: {},
+    syntheseMedicale: 'Adolescent ; prévention et bucco-dentaire à documenter.',
+    pointsAttention: 'Examen dentaire annuel 3–24 ans.',
   },
   {
     id: 'P-007',
@@ -88,5 +111,7 @@ export const MOCK_PATIENTS = [
     diabetique: false,
     derniereVisite: '2024-10-05',
     indicateursFaits: { colorectal: true, mammographie: true },
+    syntheseMedicale: 'Dépistages sein et colorectal à jour ; col utérus selon suivi gynéco.',
+    pointsAttention: 'Contrôle visite FMT avant 24 mois.',
   },
 ]

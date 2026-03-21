@@ -79,6 +79,56 @@ export function missingIndicators(patient) {
   )
 }
 
+/** Au moins un indicateur FMT « part variable » applicable (population cible). */
+export function patientEligiblePrevention(patient) {
+  return INDICATOR_KEYS.some((key) => indicatorEligible(key, patient))
+}
+
+/** Effectif liste — chiffres démo jusqu’au branchement back Go. */
+export function patientsTotal(list) {
+  return list.length
+}
+
+/**
+ * Entonnoir : total, éligibles prévention, éligibles avec au moins un manquant.
+ * Données brutes (non enrichies).
+ */
+export function funnelStats(list) {
+  let eligiblePrevention = 0
+  let withAnyGap = 0
+  for (const p of list) {
+    if (patientEligiblePrevention(p)) {
+      eligiblePrevention += 1
+      if (missingIndicators(p).length > 0) withAnyGap += 1
+    }
+  }
+  return {
+    total: list.length,
+    eligiblePrevention,
+    withAnyGap,
+  }
+}
+
+/** Une ligne par critère : éligibles vs manquants (sans montants). */
+export function statsPerCriterion(list) {
+  return INDICATOR_KEYS.map((key) => {
+    let eligibleCount = 0
+    let missingCount = 0
+    for (const p of list) {
+      if (!indicatorEligible(key, p)) continue
+      eligibleCount += 1
+      const done = p.indicateursFaits ?? {}
+      if (!done[key]) missingCount += 1
+    }
+    return {
+      key,
+      label: INDICATOR_LABELS[key],
+      eligibleCount,
+      missingCount,
+    }
+  })
+}
+
 export function visitWarning(months) {
   if (!Number.isFinite(months)) return 'none'
   if (months >= MONTHS_VISIT_FORFAIT_LOSS) return 'loss'

@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Faux logiciel médical — Test BioTrack</title>
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+        background: #e8eef5;
+        color: #1e293b;
+        min-height: 100vh;
+      }
+      .app-bar {
+        background: #0f172a;
+        color: #f8fafc;
+        padding: 0.75rem 1.25rem;
+        font-weight: 600;
+        font-size: 0.95rem;
+      }
+      .layout {
+        max-width: 960px;
+        margin: 0 auto;
+        padding: 1.5rem;
+      }
+      .card {
+        background: #fff;
+        border-radius: 10px;
+        box-shadow: 0 1px 3px rgb(15 23 42 / 12%);
+        padding: 1.25rem 1.5rem;
+        margin-bottom: 1rem;
+      }
+      .card h2 {
+        margin: 0 0 0.75rem;
+        font-size: 1rem;
+        color: #475569;
+      }
+      .patient-line {
+        font-size: 1.125rem;
+        font-weight: 600;
+      }
+      .hint {
+        margin-top: 2rem;
+        padding: 1rem;
+        background: #fef3c7;
+        border: 1px solid #fcd34d;
+        border-radius: 8px;
+        font-size: 0.875rem;
+        color: #78350f;
+      }
+      code {
+        background: #f1f5f9;
+        padding: 0.15rem 0.35rem;
+        border-radius: 4px;
+        font-size: 0.85em;
+      }
+    </style>
+  </head>
+  <body>
+    <header class="app-bar">Hôpital Demo — Dossier patient</header>
+    <div class="layout">
+      <div class="card">
+        <h2>Fiche active</h2>
+        <!--
+          L’extension lit cet élément (content.js).
+          Modifiez data-patient-id pour tester un autre ID.
+        -->
+        <div
+          id="biotrack-patient-data"
+          class="patient-line"
+          data-patient-id="PAT-004"
+        >
+          Marie Martin — née le 12/03/1978
+        </div>
+      </div>
+      <div class="card">
+        <h2>Notes clinicien</h2>
+        <p style="margin: 0; color: #64748b; line-height: 1.5">
+          Page factice pour le hackathon. Chargez l’extension BioTrack, ouvrez le
+          panneau latéral, puis rechargez cette page si besoin : l’ID
+          <code>PAT-004</code> doit apparaître dans la sidebar.
+        </p>
+      </div>
+      <p class="hint">
+        <strong>Ouverture :</strong> double-cliquez ce fichier dans le Finder /
+        Explorateur, ou servez le dossier avec
+        <code>npx serve .</code> et ouvrez l’URL affichée. L’URL
+        <code>file://</code> fonctionne si l’extension a accès au site (ex.
+        <code>&lt;all_urls&gt;</code>).
+      </p>
+    </div>
+  </body>
+</html>

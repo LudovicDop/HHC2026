@@ -1,0 +1,557 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>LGC — Agenda (démo BioTrack)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              lgc: {
+                nav: '#0b1628',
+                nav2: '#0f1e35',
+                accent: '#2563eb',
+              },
+            },
+          },
+        },
+      }
+    </script>
+    <style>
+      html,
+      body {
+        height: 100%;
+      }
+    </style>
+  </head>
+  <body class="min-h-screen overflow-hidden bg-slate-200 text-[13px] text-slate-800 antialiased">
+    <div class="flex h-screen min-h-0 w-full min-w-[1024px]">
+      <!-- Rail icônes gauche -->
+      <nav
+        class="flex w-[52px] shrink-0 flex-col items-center gap-1 border-r border-black/20 bg-lgc-nav py-3 shadow-inner"
+        aria-label="Navigation principale"
+      >
+        <button
+          type="button"
+          class="flex h-10 w-10 items-center justify-center rounded-lg bg-white/10 text-white shadow-sm ring-1 ring-white/10"
+          title="Agenda"
+          aria-current="page"
+        >
+          <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="1.75"
+              d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+            />
+          </svg>
+        </button>
+        <button
+          type="button"
+          class="flex h-10 w-10 items-center justify-center rounded-lg text-white/55 hover:bg-white/10 hover:text-white"
+          title="Tâches"
+        >
+          <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="1.75"
+              d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"
+            />
+          </svg>
+        </button>
+        <button
+          type="button"
+          class="flex h-10 w-10 items-center justify-center rounded-lg text-white/55 hover:bg-white/10 hover:text-white"
+          title="Messages"
+        >
+          <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="1.75"
+              d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+            />
+          </svg>
+        </button>
+        <button
+          type="button"
+          class="flex h-10 w-10 items-center justify-center rounded-lg text-white/55 hover:bg-white/10 hover:text-white"
+          title="Patients"
+        >
+          <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="1.75"
+              d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"
+            />
+          </svg>
+        </button>
+        <span class="flex-1"></span>
+        <button
+          type="button"
+          class="mb-1 flex h-10 w-10 items-center justify-center rounded-lg text-white/55 hover:bg-white/10 hover:text-white"
+          title="Paramètres"
+        >
+          <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="1.75"
+              d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
+            />
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+          </svg>
+        </button>
+      </nav>
+
+      <!-- Zone application -->
+      <div class="flex min-h-0 min-w-0 flex-1 flex-col bg-slate-100">
+        <!-- Header bleu nuit + recherche -->
+        <header
+          class="flex h-[52px] shrink-0 items-center gap-3 border-b border-black/15 bg-lgc-nav2 px-4 shadow-sm"
+        >
+          <span class="hidden font-semibold tracking-tight text-white sm:inline">LGC Santé</span>
+          <div class="relative mx-auto max-w-xl flex-1 sm:mx-0">
+            <span class="pointer-events-none absolute inset-y-0 left-3 flex items-center text-slate-400" aria-hidden="true">
+              <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                />
+              </svg>
+            </span>
+            <input
+              type="search"
+              placeholder="Rechercher un patient, un dossier…"
+              class="w-full rounded-md border border-white/10 bg-white/95 py-2 pl-9 pr-3 text-sm text-slate-800 shadow-sm placeholder:text-slate-400 focus:border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-400/40"
+            />
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="hidden text-xs text-white/70 lg:inline">Dr. Martin</span>
+            <div
+              class="flex h-9 w-9 items-center justify-center rounded-full bg-white/15 text-xs font-semibold text-white ring-2 ring-white/20"
+              aria-hidden="true"
+            >
+              DM
+            </div>
+          </div>
+        </header>
+
+        <!-- Barre d'outils blanche -->
+        <div
+          class="flex h-11 shrink-0 items-center justify-between gap-4 border-b border-slate-200 bg-white px-4 shadow-sm"
+        >
+          <div class="flex items-center gap-2 text-slate-600">
+            <button
+              type="button"
+              class="rounded border border-slate-200 p-1 text-slate-500 hover:bg-slate-50"
+              aria-label="Semaine précédente"
+            >
+              ‹
+            </button>
+            <button
+              type="button"
+              class="rounded border border-slate-200 p-1 text-slate-500 hover:bg-slate-50"
+              aria-label="Semaine suivante"
+            >
+              ›
+            </button>
+            <span class="ml-2 text-sm font-semibold text-slate-800">17 mars — 21 mars 2026</span>
+          </div>
+          <div
+            class="inline-flex rounded-lg border border-slate-200 bg-slate-50 p-0.5 text-xs font-medium text-slate-600"
+            role="group"
+            aria-label="Vue agenda"
+          >
+            <button
+              type="button"
+              class="rounded-md bg-white px-3 py-1.5 text-slate-900 shadow-sm ring-1 ring-slate-200/80"
+            >
+              Semaine
+            </button>
+            <button type="button" class="rounded-md px-3 py-1.5 hover:text-slate-900">Jour</button>
+          </div>
+        </div>
+
+        <!-- Corps : panneau interne + grille -->
+        <div class="flex min-h-0 flex-1 overflow-hidden">
+          <!-- Panneau latéral interne -->
+          <aside
+            class="flex w-[300px] shrink-0 flex-col overflow-y-auto border-r border-slate-200 bg-white shadow-[4px_0_12px_-8px_rgba(0,0,0,0.08)]"
+          >
+            <div class="border-b border-slate-100 p-4">
+              <div class="flex items-center justify-between">
+                <p class="text-xs font-bold uppercase tracking-wider text-slate-500">Mars 2026</p>
+                <div class="flex gap-1 text-slate-400">
+                  <button type="button" class="rounded px-1 hover:bg-slate-100" aria-label="Mois précédent">‹</button>
+                  <button type="button" class="rounded px-1 hover:bg-slate-100" aria-label="Mois suivant">›</button>
+                </div>
+              </div>
+              <div class="mt-3 grid grid-cols-7 gap-y-1 text-center text-[10px] font-medium text-slate-400">
+                <span>L</span><span>M</span><span>M</span><span>J</span><span>V</span><span>S</span><span>D</span>
+              </div>
+              <div class="mt-1 grid grid-cols-7 gap-1 text-center text-[11px] text-slate-700">
+                <span class="py-0.5 text-slate-300"> </span>
+                <span class="py-0.5 text-slate-300"> </span>
+                <span class="py-0.5 text-slate-300"> </span>
+                <span class="py-0.5 text-slate-300"> </span>
+                <span class="py-0.5 text-slate-300"> </span>
+                <span class="py-0.5 text-slate-300"> </span>
+                <span class="py-0.5">1</span>
+                <span class="py-0.5">2</span>
+                <span class="py-0.5">3</span>
+                <span class="py-0.5">4</span>
+                <span class="py-0.5">5</span>
+                <span class="py-0.5">6</span>
+                <span class="py-0.5">7</span>
+                <span class="py-0.5">8</span>
+                <span class="py-0.5">9</span>
+                <span class="py-0.5">10</span>
+                <span class="py-0.5">11</span>
+                <span class="py-0.5">12</span>
+                <span class="py-0.5">13</span>
+                <span class="py-0.5">14</span>
+                <span class="py-0.5">15</span>
+                <span class="py-0.5">16</span>
+                <span class="rounded-full bg-blue-600 py-0.5 font-semibold text-white shadow-sm">17</span>
+                <span class="rounded-full bg-blue-100 py-0.5 font-semibold text-blue-800">18</span>
+                <span class="rounded-full bg-blue-100 py-0.5 font-semibold text-blue-800">19</span>
+                <span class="rounded-full bg-blue-100 py-0.5 font-semibold text-blue-800">20</span>
+                <span class="rounded-full bg-blue-100 py-0.5 font-semibold text-blue-800">21</span>
+                <span class="py-0.5">22</span>
+                <span class="py-0.5">23</span>
+                <span class="py-0.5">24</span>
+                <span class="py-0.5">25</span>
+                <span class="py-0.5">26</span>
+                <span class="py-0.5">27</span>
+                <span class="py-0.5">28</span>
+                <span class="py-0.5">29</span>
+                <span class="py-0.5">30</span>
+                <span class="py-0.5">31</span>
+              </div>
+            </div>
+
+            <div class="p-4">
+              <p class="text-xs font-bold uppercase tracking-wider text-slate-500">Consultation sélectionnée</p>
+              <!-- Carte rose + hooks BioTrack -->
+              <div
+                id="biotrack-active-patient"
+                data-patient-id="PAT-004"
+                class="mt-3 rounded-xl border border-pink-200 bg-gradient-to-br from-pink-50 to-rose-50 p-4 shadow-sm ring-1 ring-pink-100"
+              >
+                <p id="card-consultation" class="text-sm font-semibold text-pink-950">Consultation de suivi</p>
+                <p id="card-name" class="mt-2 text-base font-bold tracking-tight text-pink-900">MARTIN Marie</p>
+                <p id="card-dob" class="mt-1.5 text-xs leading-relaxed text-pink-800/90">
+                  Née le 12/04/1974 (52 ans)
+                </p>
+              </div>
+              <p class="mt-3 text-[11px] leading-snug text-slate-400">
+                Cliquez un créneau dans la grille pour mettre à jour cette fiche (démo extension BioTrack).
+              </p>
+            </div>
+          </aside>
+
+          <!-- Grille semaine -->
+          <main class="min-h-0 min-w-0 flex-1 overflow-auto bg-white">
+            <div class="min-w-[720px]">
+              <!-- En-tête jours -->
+              <div
+                class="sticky top-0 z-20 grid border-b border-slate-200 bg-slate-50/95 backdrop-blur"
+                style="grid-template-columns: 3.25rem repeat(5, minmax(0, 1fr))"
+              >
+                <div class="border-r border-slate-200"></div>
+                <div class="border-r border-slate-200 px-2 py-2 text-center">
+                  <p class="text-[11px] font-semibold uppercase text-slate-500">Lun.</p>
+                  <p class="text-sm font-bold text-slate-900">17</p>
+                </div>
+                <div class="border-r border-slate-200 px-2 py-2 text-center">
+                  <p class="text-[11px] font-semibold uppercase text-slate-500">Mar.</p>
+                  <p class="text-sm font-bold text-slate-900">18</p>
+                </div>
+                <div class="border-r border-slate-200 px-2 py-2 text-center">
+                  <p class="text-[11px] font-semibold uppercase text-slate-500">Mer.</p>
+                  <p class="text-sm font-bold text-slate-900">19</p>
+                </div>
+                <div class="border-r border-slate-200 px-2 py-2 text-center">
+                  <p class="text-[11px] font-semibold uppercase text-slate-500">Jeu.</p>
+                  <p class="text-sm font-bold text-slate-900">20</p>
+                </div>
+                <div class="px-2 py-2 text-center">
+                  <p class="text-[11px] font-semibold uppercase text-slate-500">Ven.</p>
+                  <p class="text-sm font-bold text-slate-900">21</p>
+                </div>
+              </div>
+
+              <!-- Lignes horaires + colonnes -->
+              <div
+                class="grid"
+                style="grid-template-columns: 3.25rem repeat(5, minmax(0, 1fr))"
+              >
+                <!-- Colonne heures -->
+                <div class="border-r border-slate-200 bg-white">
+                  <!-- 8h à 18h : 10 créneaux d'1h, h-14 chacun -->
+                  <div class="flex h-14 items-start justify-end border-b border-slate-100 pr-2 pt-1 text-[11px] text-slate-400">
+                    8:00
+                  </div>
+                  <div class="flex h-14 items-start justify-end border-b border-slate-100 pr-2 pt-1 text-[11px] text-slate-400">
+                    9:00
+                  </div>
+                  <div class="flex h-14 items-start justify-end border-b border-slate-100 pr-2 pt-1 text-[11px] text-slate-400">
+                    10:00
+                  </div>
+                  <div class="flex h-14 items-start justify-end border-b border-slate-100 pr-2 pt-1 text-[11px] text-slate-400">
+                    11:00
+                  </div>
+                  <div class="flex h-14 items-start justify-end border-b border-slate-100 pr-2 pt-1 text-[11px] text-slate-400">
+                    12:00
+                  </div>
+                  <div class="flex h-14 items-start justify-end border-b border-slate-100 pr-2 pt-1 text-[11px] text-slate-400">
+                    13:00
+                  </div>
+                  <div class="flex h-14 items-start justify-end border-b border-slate-100 pr-2 pt-1 text-[11px] text-slate-400">
+                    14:00
+                  </div>
+                  <div class="flex h-14 items-start justify-end border-b border-slate-100 pr-2 pt-1 text-[11px] text-slate-400">
+                    15:00
+                  </div>
+                  <div class="flex h-14 items-start justify-end border-b border-slate-100 pr-2 pt-1 text-[11px] text-slate-400">
+                    16:00
+                  </div>
+                  <div class="flex h-14 items-start justify-end border-b border-slate-100 pr-2 pt-1 text-[11px] text-slate-400">
+                    17:00
+                  </div>
+                </div>
+
+                <!-- Colonne Lun -->
+                <div class="relative border-r border-slate-200 bg-white" style="height: 35rem">
+                  <div class="pointer-events-none absolute inset-0 flex flex-col">
+                    <div class="h-14 border-b border-slate-100"></div>
+                    <div class="h-14 border-b border-slate-100"></div>
+                    <div class="h-14 border-b border-slate-100"></div>
+                    <div class="h-14 border-b border-slate-100"></div>
+                    <div class="h-14 border-b border-slate-100"></div>
+                    <div class="h-14 border-b border-slate-100"></div>
+                    <div class="h-14 border-b border-slate-100"></div>
+                    <div class="h-14 border-b border-slate-100"></div>
+                    <div class="h-14 border-b border-slate-100"></div>
+                    <div class="h-14 border-b border-slate-100"></div>
+                  </div>
+                  <button
+                    type="button"
+                    class="agenda-rdv absolute left-1 right-1 z-10 cursor-pointer rounded-md border border-emerald-200 bg-emerald-100/90 px-2 py-1 text-left text-[11px] font-semibold text-emerald-900 shadow-sm transition hover:ring-2 hover:ring-emerald-300/80"
+                    style="top: 3.5rem; height: 3.5rem"
+                    data-patient-id="PAT-007"
+                    data-consultation="Bilan cardiologique"
+                    data-name="BERNARD Sophie"
+                    data-dob="Née le 03/08/1988 (37 ans)"
+                  >
+                    BERNARD Sophie
+                    <span class="mt-0.5 block text-[10px] font-normal opacity-80">9:00 — 10:00</span>
+                  </button>
+                  <button
+                    type="button"
+                    class="agenda-rdv absolute left-1 right-1 z-10 cursor-pointer rounded-md border border-blue-200 bg-blue-100/90 px-2 py-1 text-left text-[11px] font-semibold text-blue-900 shadow-sm transition hover:ring-2 hover:ring-blue-300/80"
+                    style="top: 14rem; height: 1.75rem"
+                    data-patient-id="PAT-006"
+                    data-consultation="Téléconsultation"
+                    data-name="PETIT Lucas"
+                    data-dob="Né le 22/11/1995 (30 ans)"
+                  >
+                    PETIT Lucas
+                    <span class="mt-0.5 block text-[10px] font-normal opacity-80">12:00 — 12:30</span>
+                  </button>
+                </div>
+
+                <!-- Colonne Mar -->
+                <div class="relative border-r border-slate-200 bg-white" style="height: 35rem">
+                  <div class="pointer-events-none absolute inset-0 flex flex-col">
+                    <div class="h-14 border-b border-slate-100"></div>
+                    <div class="h-14 border-b border-slate-100"></div>
+                    <div class="h-14 border-b border-slate-100"></div>
+                    <div class="h-14 border-b border-slate-100"></div>
+                    <div class="h-14 border-b border-slate-100"></div>
+                    <div class="h-14 border-b border-slate-100"></div>
+                    <div class="h-14 border-b border-slate-100"></div>
+                    <div class="h-14 border-b border-slate-100"></div>
+                    <div class="h-14 border-b border-slate-100"></div>
+                    <div class="h-14 border-b border-slate-100"></div>
+                  </div>
+                  <button
+                    type="button"
+                    class="agenda-rdv absolute left-1 right-1 z-10 cursor-pointer rounded-md border border-orange-200 bg-orange-100/90 px-2 py-1 text-left text-[11px] font-semibold text-orange-900 shadow-sm transition hover:ring-2 hover:ring-orange-300/80"
+                    style="top: 7rem; height: 2.625rem"
+                    data-patient-id="PAT-005"
+                    data-consultation="Première consultation"
+                    data-name="DUPONT Jean"
+                    data-dob="Né le 15/02/1961 (65 ans)"
+                  >
+                    DUPONT Jean
+                    <span class="mt-0.5 block text-[10px] font-normal opacity-80">10:00 — 11:30</span>
+                  </button>
+                </div>
+
+                <!-- Colonne Mer — MARTIN Marie 10h -->
+                <div class="relative border-r border-slate-200 bg-white" style="height: 35rem">
+                  <div class="pointer-events-none absolute inset-0 flex flex-col">
+                    <div class="h-14 border-b border-slate-100"></div>
+                    <div class="h-14 border-b border-slate-100"></div>
+                    <div class="h-14 border-b border-slate-100"></div>
+                    <div class="h-14 border-b border-slate-100"></div>
+                    <div class="h-14 border-b border-slate-100"></div>
+                    <div class="h-14 border-b border-slate-100"></div>
+                    <div class="h-14 border-b border-slate-100"></div>
+                    <div class="h-14 border-b border-slate-100"></div>
+                    <div class="h-14 border-b border-slate-100"></div>
+                    <div class="h-14 border-b border-slate-100"></div>
+                  </div>
+                  <button
+                    type="button"
+                    class="agenda-rdv absolute left-1 right-1 z-10 cursor-pointer rounded-md border border-pink-300 bg-pink-100/95 px-2 py-1 text-left text-[11px] font-semibold text-pink-900 shadow-sm transition hover:ring-2 hover:ring-pink-400/80"
+                    style="top: 7rem; height: 1.75rem"
+                    data-patient-id="PAT-004"
+                    data-consultation="Consultation de suivi"
+                    data-name="MARTIN Marie"
+                    data-dob="Née le 12/04/1974 (52 ans)"
+                  >
+                    MARTIN Marie
+                    <span class="mt-0.5 block text-[10px] font-normal opacity-80">10:00 — 10:30</span>
+                  </button>
+                  <button
+                    type="button"
+                    class="agenda-rdv absolute left-1 right-1 z-10 cursor-pointer rounded-md border border-violet-200 bg-violet-100/90 px-2 py-1 text-left text-[11px] font-semibold text-violet-900 shadow-sm transition hover:ring-2 hover:ring-violet-300/80"
+                    style="top: 22.75rem; height: 5.25rem"
+                    data-patient-id="PAT-008"
+                    data-consultation="Suivi grossesse"
+                    data-name="LEROY Claire"
+                    data-dob="Née le 01/06/1992 (33 ans)"
+                  >
+                    LEROY Claire
+                    <span class="mt-0.5 block text-[10px] font-normal opacity-80">14:30 — 16:00</span>
+                  </button>
+                </div>
+
+                <!-- Colonne Jeu -->
+                <div class="relative border-r border-slate-200 bg-white" style="height: 35rem">
+                  <div class="pointer-events-none absolute inset-0 flex flex-col">
+                    <div class="h-14 border-b border-slate-100"></div>
+                    <div class="h-14 border-b border-slate-100"></div>
+                    <div class="h-14 border-b border-slate-100"></div>
+                    <div class="h-14 border-b border-slate-100"></div>
+                    <div class="h-14 border-b border-slate-100"></div>
+                    <div class="h-14 border-b border-slate-100"></div>
+                    <div class="h-14 border-b border-slate-100"></div>
+                    <div class="h-14 border-b border-slate-100"></div>
+                    <div class="h-14 border-b border-slate-100"></div>
+                    <div class="h-14 border-b border-slate-100"></div>
+                  </div>
+                  <button
+                    type="button"
+                    class="agenda-rdv absolute left-1 right-1 z-10 cursor-pointer rounded-md border border-rose-200 bg-rose-100/90 px-2 py-1 text-left text-[11px] font-semibold text-rose-900 shadow-sm transition hover:ring-2 hover:ring-rose-300/80"
+                    style="top: 1.75rem; height: 1.75rem"
+                    data-patient-id="PAT-009"
+                    data-consultation="Urgence douleur"
+                    data-name="MOREAU Paul"
+                    data-dob="Né le 19/09/1970 (55 ans)"
+                  >
+                    MOREAU Paul
+                    <span class="mt-0.5 block text-[10px] font-normal opacity-80">8:30 — 9:00</span>
+                  </button>
+                  <button
+                    type="button"
+                    class="agenda-rdv absolute left-1 right-1 z-10 cursor-pointer rounded-md border border-cyan-200 bg-cyan-100/90 px-2 py-1 text-left text-[11px] font-semibold text-cyan-900 shadow-sm transition hover:ring-2 hover:ring-cyan-300/80"
+                    style="top: 10.5rem; height: 5.25rem"
+                    data-patient-id="PAT-010"
+                    data-consultation="Vaccination"
+                    data-name="GARCIA Ana"
+                    data-dob="Née le 07/12/2001 (24 ans)"
+                  >
+                    GARCIA Ana
+                    <span class="mt-0.5 block text-[10px] font-normal opacity-80">11:00 — 12:30</span>
+                  </button>
+                </div>
+
+                <!-- Colonne Ven -->
+                <div class="relative bg-white" style="height: 35rem">
+                  <div class="pointer-events-none absolute inset-0 flex flex-col">
+                    <div class="h-14 border-b border-slate-100"></div>
+                    <div class="h-14 border-b border-slate-100"></div>
+                    <div class="h-14 border-b border-slate-100"></div>
+                    <div class="h-14 border-b border-slate-100"></div>
+                    <div class="h-14 border-b border-slate-100"></div>
+                    <div class="h-14 border-b border-slate-100"></div>
+                    <div class="h-14 border-b border-slate-100"></div>
+                    <div class="h-14 border-b border-slate-100"></div>
+                    <div class="h-14 border-b border-slate-100"></div>
+                    <div class="h-14 border-b border-slate-100"></div>
+                  </div>
+                  <button
+                    type="button"
+                    class="agenda-rdv absolute left-1 right-1 z-10 cursor-pointer rounded-md border border-amber-200 bg-amber-100/90 px-2 py-1 text-left text-[11px] font-semibold text-amber-900 shadow-sm transition hover:ring-2 hover:ring-amber-300/80"
+                    style="top: 5.25rem; height: 1.75rem"
+                    data-patient-id="PAT-011"
+                    data-consultation="Certificat médical"
+                    data-name="ROUX Camille"
+                    data-dob="Née le 30/05/1985 (40 ans)"
+                  >
+                    ROUX Camille
+                    <span class="mt-0.5 block text-[10px] font-normal opacity-80">9:30 — 10:00</span>
+                  </button>
+                  <button
+                    type="button"
+                    class="agenda-rdv absolute left-1 right-1 z-10 cursor-pointer rounded-md border border-indigo-200 bg-indigo-100/90 px-2 py-1 text-left text-[11px] font-semibold text-indigo-900 shadow-sm transition hover:ring-2 hover:ring-indigo-300/80"
+                    style="top: 24.5rem; height: 3.5rem"
+                    data-patient-id="PAT-012"
+                    data-consultation="Bilan biologique"
+                    data-name="FAURE Thomas"
+                    data-dob="Né le 11/01/1958 (68 ans)"
+                  >
+                    FAURE Thomas
+                    <span class="mt-0.5 block text-[10px] font-normal opacity-80">15:00 — 16:00</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </main>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      ;(function () {
+        var card = document.getElementById('biotrack-active-patient')
+        var elConsultation = document.getElementById('card-consultation')
+        var elName = document.getElementById('card-name')
+        var elDob = document.getElementById('card-dob')
+        if (!card || !elConsultation || !elName || !elDob) return
+
+        function applySelection(rdv) {
+          var id = rdv.getAttribute('data-patient-id')
+          var consultation = rdv.getAttribute('data-consultation') || ''
+          var name = rdv.getAttribute('data-name') || ''
+          var dob = rdv.getAttribute('data-dob') || ''
+          card.setAttribute('data-patient-id', id || '')
+          elConsultation.textContent = consultation
+          elName.textContent = name
+          elDob.textContent = dob
+          document.querySelectorAll('.agenda-rdv').forEach(function (b) {
+            b.classList.remove('ring-2', 'ring-offset-1', 'ring-slate-400')
+          })
+          rdv.classList.add('ring-2', 'ring-offset-1', 'ring-slate-400')
+        }
+
+        document.querySelectorAll('.agenda-rdv').forEach(function (btn) {
+          btn.addEventListener('click', function () {
+            applySelection(btn)
+          })
+        })
+      })()
+    </script>
+  </body>
+</html>

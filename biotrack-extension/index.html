@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>BioTrack Santé</title>
+    <style>
+      #file-protocol-hint {
+        display: none;
+        font-family: system-ui, sans-serif;
+        max-width: 32rem;
+        margin: 2rem auto;
+        padding: 1.25rem 1.5rem;
+        line-height: 1.5;
+        background: #fef3c7;
+        border: 1px solid #f59e0b;
+        border-radius: 8px;
+        color: #78350f;
+      }
+      #file-protocol-hint code {
+        background: rgb(0 0 0 / 0.06);
+        padding: 0.1rem 0.35rem;
+        border-radius: 4px;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <div id="file-protocol-hint" aria-live="polite"></div>
+    <script>
+      if (location.protocol === 'file:') {
+        var h = document.getElementById('file-protocol-hint')
+        h.style.display = 'block'
+        h.innerHTML =
+          '<strong>Ouverture en fichier local (file://)</strong><br /><br />' +
+          'Les scripts Vite/React ne se chargent pas ainsi. Dans le dossier ' +
+          '<code>biotrack-extension</code>, lancez <code>npm run dev</code> ' +
+          'puis ouvrez <strong>http://localhost:5173</strong>.<br /><br />' +
+          'Pour le vrai panneau latéral Chrome : chargez l’extension (dossier ' +
+          '<code>dist</code> ou mode dev CRX), puis icône BioTrack → panneau latéral.'
+      }
+    </script>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>

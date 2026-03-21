@@ -5,7 +5,7 @@ NGINX_IMAGE = nginx
 MARIADB_IMAGE = mariadb
 DB_VOL = srcs_mariadb_data
 MYSQL_ROOT_PASSWORD = jesaispas123
-MYSQL_DATABASE = hhc-db 
+MYSQL_DATABASE = hhc 
 BACKEND_IMAGE= hhc-backend
 
 # Default target: build all images

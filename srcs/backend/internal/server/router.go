@@ -8,6 +8,8 @@ import (
 	"net/http"
 	"os"
 	"time"
+
+	"hhc/internal/database"
 )
 
 type User struct {
@@ -27,6 +29,28 @@ type HealthResponse struct {
 
 type testResponse struct {
 	Test string `json:"message"`
+}
+
+type PatientVaccination struct {
+	IDPatient     string  `json:"id_patient"`
+	Prenom        string  `json:"prenom"`
+	Nom           string  `json:"nom"`
+	Age           int     `json:"age"`
+	Sexe          string  `json:"sexe"`
+	DernierVaccin *string `json:"dernier_vaccin,omitempty"`
+}
+
+type PatientHealth struct {
+	IDPatient string   `json:"id_patient"`
+	IMC       *float64 `json:"imc,omitempty"`
+	Fumeur    *bool    `json:"fumeur,omitempty"`
+}
+
+type PatientRdv struct {
+	IDPatient string  `json:"id_patient"`
+	Prenom    string  `json:"prenom"`
+	Nom       string  `json:"nom"`
+	Rdv       *string `json:"rdv,omitempty"`
 }
 
 func HelloHandler(w http.ResponseWriter, r *http.Request) {
@@ -104,4 +128,155 @@ func CheckDatabaseHealth(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(resp)
+}
+
+func OverdueFluVaccinesHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		return
+	}
+
+	const query = `
+SELECT 
+    p.id_patient,
+    p.prenom,
+    p.nom,
+    p.age,
+    p.sexe,
+    MAX(v.date_vaccin) AS dernier_vaccin
+FROM patients p
+LEFT JOIN vaccinations v 
+    ON p.id_patient = v.id_patient
+    AND v.type_vaccin = 'grippe'
+GROUP BY p.id_patient, p.prenom, p.nom, p.age, p.sexe
+HAVING 
+    dernier_vaccin IS NULL 
+    OR dernier_vaccin < DATE_SUB(CURDATE(), INTERVAL 1 YEAR)
+ORDER BY dernier_vaccin ASC`
+
+	rows, err := database.Db.Query(query)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("erreur lors de l'exécution de la requête: %v", err), http.StatusInternalServerError)
+		return
+	}
+	defer rows.Close()
+
+	var results []PatientVaccination
+	for rows.Next() {
+		var patient PatientVaccination
+		var lastVaccin sql.NullTime
+
+		if err := rows.Scan(&patient.IDPatient, &patient.Prenom, &patient.Nom, &patient.Age, &patient.Sexe, &lastVaccin); err != nil {
+			http.Error(w, fmt.Sprintf("erreur lors de la lecture des résultats: %v", err), http.StatusInternalServerError)
+			return
+		}
+
+		if lastVaccin.Valid {
+			formatted := lastVaccin.Time.Format("2006-01-02")
+			patient.DernierVaccin = &formatted
+		}
+
+		results = append(results, patient)
+	}
+
+	if err := rows.Err(); err != nil {
+		http.Error(w, fmt.Sprintf("erreur lors de la lecture des résultats: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(results); err != nil {
+		http.Error(w, fmt.Sprintf("erreur lors de l'encodage des données: %v", err), http.StatusInternalServerError)
+		return
+	}
+}
+
+func PatientsImcFumeurHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		return
+	}
+
+	const query = `SELECT id_patient, imc, fumeur FROM patients`
+
+	rows, err := database.Db.Query(query)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("erreur lors de l'exécution de la requête: %v", err), http.StatusInternalServerError)
+		return
+	}
+	defer rows.Close()
+
+	var results []PatientHealth
+	for rows.Next() {
+		var patient PatientHealth
+		var imc sql.NullFloat64
+		var fumeur sql.NullBool
+
+		if err := rows.Scan(&patient.IDPatient, &imc, &fumeur); err != nil {
+			http.Error(w, fmt.Sprintf("erreur lors de la lecture des résultats: %v", err), http.StatusInternalServerError)
+			return
+		}
+
+		if imc.Valid {
+			patient.IMC = &imc.Float64
+		}
+		if fumeur.Valid {
+			patient.Fumeur = &fumeur.Bool
+		}
+
+		results = append(results, patient)
+	}
+
+	if err := rows.Err(); err != nil {
+		http.Error(w, fmt.Sprintf("erreur lors de la lecture des résultats: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(results); err != nil {
+		http.Error(w, fmt.Sprintf("erreur lors de l'encodage des données: %v", err), http.StatusInternalServerError)
+		return
+	}
+}
+
+func PatientRdvHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		return
+	}
+
+	patientID := r.URL.Query().Get("id")
+	if patientID == "" {
+		http.Error(w, "parametre 'id' manquant", http.StatusBadRequest)
+		return
+	}
+
+	const query = `
+SELECT id_patient, prenom, nom, rdv
+FROM patients
+WHERE id_patient = ?`
+
+	var patient PatientRdv
+	var rdv sql.NullTime
+
+	err := database.Db.QueryRow(query, patientID).Scan(&patient.IDPatient, &patient.Prenom, &patient.Nom, &rdv)
+	if err == sql.ErrNoRows {
+		http.Error(w, "patient non trouve", http.StatusNotFound)
+		return
+	}
+	if err != nil {
+		http.Error(w, fmt.Sprintf("erreur lors de la lecture des données: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	if rdv.Valid {
+		formatted := rdv.Time.Format("2006-01-02")
+		patient.Rdv = &formatted
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(patient); err != nil {
+		http.Error(w, fmt.Sprintf("erreur lors de l'encodage des données: %v", err), http.StatusInternalServerError)
+		return
+	}
 }

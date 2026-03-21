@@ -290,13 +290,16 @@ export function initFmtDashboard(root) {
     if (id) void openDossier(id)
   })
 
-  function buildSuiviTable(theadEl, tbodyEl, patients, showEur) {
+  /** Tableau unique : suivi + synthèse médicale (une ligne par patient). */
+  function buildUnifiedPatientTable(theadEl, tbodyEl, patients, showEur) {
     const thEur = showEur ? '<th>Manque à gagner</th>' : ''
     theadEl.innerHTML = `
       <tr>
         <th>Indicateurs</th>
         <th>Statut</th>
         <th>Profil</th>
+        <th>Synthèse</th>
+        <th>Points d’attention</th>
         ${thEur}
         <th>Dossier</th>
       </tr>
@@ -307,9 +310,6 @@ export function initFmtDashboard(root) {
       tr.dataset.id = p.id
       tr.dataset.selected = String(p.id === selectedId)
       const pill = visitPill(p)
-      const eurCell = showEur
-        ? `<td class="fmt-eur">${formatEur(p._total)}</td>`
-        : '<td class="fmt-eur" style="color:var(--muted)">—</td>'
 
       const badgesHtml =
         p._manquants.length === 0
@@ -321,44 +321,61 @@ export function initFmtDashboard(root) {
               )
               .join(' ')
 
-      tr.innerHTML = `
-        <td><div class="fmt-badges" style="gap:0.4rem">${badgesHtml}</div></td>
-        <td><span class="${pill.className}">${pill.text}</span></td>
-        <td class="fmt-profil-cell">
-          <strong>${p.prenom} ${p.nom}</strong>
-          <span class="fmt-profil-meta">${p.id} · ${formatDate(p.derniereVisite)}</span>
-          <span class="fmt-profil-meta">${p.age} ans · ${p.sexe === 'F' ? 'F' : 'M'}${p.ald ? ' · ALD' : ''}${p.c2s ? ' · C2S' : ''}${p.diabetique ? ' · Diabète' : ''}</span>
-        </td>
-        ${eurCell}
-        <td>
-          <button type="button" class="fmt-btn fmt-btn--sm" data-dossier-id="${p.id}">Dossier</button>
-        </td>
+      const tdInd = document.createElement('td')
+      tdInd.innerHTML = `<div class="fmt-badges" style="gap:0.4rem">${badgesHtml}</div>`
+
+      const tdStat = document.createElement('td')
+      const pillSpan = document.createElement('span')
+      pillSpan.className = pill.className
+      pillSpan.textContent = pill.text
+      tdStat.append(pillSpan)
+
+      const tdProf = document.createElement('td')
+      tdProf.className = 'fmt-profil-cell'
+      tdProf.innerHTML = `
+        <strong>${p.prenom} ${p.nom}</strong>
+        <span class="fmt-profil-meta">${p.id} · ${formatDate(p.derniereVisite)}</span>
+        <span class="fmt-profil-meta">${p.age} ans · ${p.sexe === 'F' ? 'F' : 'M'}${p.ald ? ' · ALD' : ''}${p.c2s ? ' · C2S' : ''}${p.diabetique ? ' · Diabète' : ''}</span>
       `
 
+      const tdSyn = document.createElement('td')
+      tdSyn.className = 'fmt-medical-note'
+      tdSyn.textContent = p.syntheseMedicale ?? '—'
+
+      const tdPts = document.createElement('td')
+      tdPts.className = 'fmt-medical-sub'
+      tdPts.textContent = p.pointsAttention ?? '—'
+
+      tr.append(tdInd, tdStat, tdProf, tdSyn, tdPts)
+
+      if (showEur) {
+        const tdEur = document.createElement('td')
+        tdEur.className = 'fmt-eur'
+        tdEur.textContent = formatEur(p._total)
+        tr.append(tdEur)
+      } else {
+        const tdEur = document.createElement('td')
+        tdEur.className = 'fmt-eur'
+        tdEur.style.color = 'var(--muted)'
+        tdEur.textContent = '—'
+        tr.append(tdEur)
+      }
+
+      const tdDos = document.createElement('td')
+      const btn = document.createElement('button')
+      btn.type = 'button'
+      btn.className = 'fmt-btn fmt-btn--sm'
+      btn.dataset.dossierId = p.id
+      btn.textContent = 'Dossier'
+      tdDos.append(btn)
+      tr.append(tdDos)
+
       tr.addEventListener('click', (ev) => {
-        if (ev.target.closest('[data-dossier-id]')) return
+        if (ev.target.closest('button[data-dossier-id]')) return
         selectedId = p.id === selectedId ? null : p.id
         render()
       })
 
-      tbodyEl.append(tr)
-    }
-  }
-
-  function buildMedicalTable(tbodyEl, patients) {
-    tbodyEl.replaceChildren()
-    for (const p of patients) {
-      const tr = document.createElement('tr')
-      const syn = p.syntheseMedicale ?? '—'
-      const pts = p.pointsAttention ?? '—'
-      tr.innerHTML = `
-        <td class="fmt-profil-cell"><strong>${p.prenom} ${p.nom}</strong><span class="fmt-profil-meta">${p.id}</span></td>
-        <td><div class="fmt-medical-note">${syn}</div></td>
-        <td><div class="fmt-medical-sub">${pts}</div></td>
-        <td>
-          <button type="button" class="fmt-btn fmt-btn--sm" data-dossier-id="${p.id}">Dossier</button>
-        </td>
-      `
       tbodyEl.append(tr)
     }
   }
@@ -435,39 +452,9 @@ export function initFmtDashboard(root) {
         twSuivi.append(tblSuivi)
         suiviWrap.append(twSuivi)
 
-        buildSuiviTable(theadSuivi, tbodySuivi, filtered, showFinancials)
+        buildUnifiedPatientTable(theadSuivi, tbodySuivi, filtered, showFinancials)
 
-        const medWrap = document.createElement('div')
-        const hMed = document.createElement('h3')
-        hMed.className = 'fmt-subsection-title'
-        hMed.textContent = 'Informations médicales précises'
-        medWrap.append(hMed)
-
-        const twMed = document.createElement('div')
-        twMed.className = 'fmt-table-wrap'
-        const tblMed = document.createElement('table')
-        tblMed.className = 'fmt-table'
-        tblMed.innerHTML = `
-          <thead>
-            <tr>
-              <th>Patient</th>
-              <th>Synthèse</th>
-              <th>Points d’attention</th>
-              <th>Dossier</th>
-            </tr>
-          </thead>
-        `
-        const tbodyMed = document.createElement('tbody')
-        tblMed.append(tbodyMed)
-        twMed.append(tblMed)
-        medWrap.append(twMed)
-
-        const rawForMed = filtered.map((p) =>
-          MOCK_PATIENTS.find((x) => x.id === p.id) ?? p,
-        )
-        buildMedicalTable(tbodyMed, rawForMed)
-
-        inner.append(suiviWrap, medWrap)
+        inner.append(suiviWrap)
         td.append(inner)
       }
 

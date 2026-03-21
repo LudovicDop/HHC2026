@@ -1,69 +1,27 @@
+import {
+  INDICATOR_KEYS,
+  INDICATOR_LABELS,
+  PART_VARIABLE_KEYS,
+  PART_VARIABLE_CATEGORIES,
+  indicatorEligible,
+  indicatorIsDone,
+  monthsOfAge,
+} from '../shared/fmtPreventionModel.js'
+
 /** Montants pédagogiques — à ajuster selon la convention. */
 export const EUR_PREVENTION_PER_GAP = 5
 export const MONTHS_VISIT_WARNING = 18
 export const MONTHS_VISIT_FORFAIT_LOSS = 24
 export const FMT_FLOOR_NOT_SEEN_EUR = 5
 
-export const INDICATOR_KEYS = [
-  'grippe',
-  'covid',
-  'pneumocoque',
-  'colorectal',
-  'mammographie',
-  'colUterus',
-  'hba1c',
-  'm9',
-  'm24',
-  'buccoDentaire',
-]
-
-/** Indicateurs part variable ciblés par le dashboard et le panneau latéral (hors puériculture / bucco). */
-export const PART_VARIABLE_KEYS = [
-  'grippe',
-  'covid',
-  'pneumocoque',
-  'colorectal',
-  'mammographie',
-  'colUterus',
-  'hba1c',
-]
-
-/** Trois familles affichées dans le tableau principal du dashboard. */
-export const PART_VARIABLE_CATEGORIES = [
-  {
-    id: 'vaccination',
-    title: 'Vaccination',
-    subtitle: 'Grippe · COVID · Pneumocoque',
-    populationCible: '≥ 65 ans ou ALD',
-    keys: ['grippe', 'covid', 'pneumocoque'],
-  },
-  {
-    id: 'depistage',
-    title: 'Dépistage',
-    subtitle: 'Colorectal · Sein · Col de l’utérus',
-    populationCible: 'Colorectal 50–74 ans ; sein / col utérus : femmes 25–65 ans',
-    keys: ['colorectal', 'mammographie', 'colUterus'],
-  },
-  {
-    id: 'suiviChronique',
-    title: 'Suivi chronique',
-    subtitle: 'HbA1c (tous les 6 mois)',
-    populationCible: 'Patients diabétiques',
-    keys: ['hba1c'],
-  },
-]
-
-export const INDICATOR_LABELS = {
-  grippe: 'Grippe',
-  covid: 'COVID',
-  pneumocoque: 'Pneumocoque',
-  colorectal: 'Colorectal',
-  mammographie: 'Mammographie',
-  colUterus: 'Col utérus',
-  hba1c: 'HbA1c',
-  m9: 'M9',
-  m24: 'M24',
-  buccoDentaire: 'Bucco-dentaire',
+export {
+  INDICATOR_KEYS,
+  INDICATOR_LABELS,
+  PART_VARIABLE_KEYS,
+  PART_VARIABLE_CATEGORIES,
+  indicatorEligible,
+  indicatorIsDone,
+  monthsOfAge,
 }
 
 export function monthsSince(isoDate) {
@@ -84,41 +42,15 @@ export function fullForfaitEuros(patient) {
   return 50
 }
 
-export function indicatorEligible(key, patient) {
-  const { age, sexe, ald, diabetique } = patient
-  switch (key) {
-    case 'grippe':
-    case 'covid':
-    case 'pneumocoque':
-      return age >= 65 || ald
-    case 'colorectal':
-      return age >= 50 && age <= 74
-    case 'mammographie':
-    case 'colUterus':
-      return sexe === 'F' && age >= 25 && age <= 65
-    case 'hba1c':
-      return Boolean(diabetique)
-    case 'm9':
-    case 'm24':
-      return age < 2
-    case 'buccoDentaire':
-      return age >= 3 && age <= 24
-    default:
-      return false
-  }
-}
-
 export function missingIndicators(patient) {
-  const done = patient.indicateursFaits ?? {}
   return INDICATOR_KEYS.filter(
-    (key) => indicatorEligible(key, patient) && !done[key],
+    (key) => indicatorEligible(key, patient) && !indicatorIsDone(patient, key),
   )
 }
 
 export function missingPartVariableIndicators(patient) {
-  const done = patient.indicateursFaits ?? {}
   return PART_VARIABLE_KEYS.filter(
-    (key) => indicatorEligible(key, patient) && !done[key],
+    (key) => indicatorEligible(key, patient) && !indicatorIsDone(patient, key),
   )
 }
 
@@ -165,9 +97,7 @@ export function statsPerCategory(list, keys) {
     const eligibleAny = keys.some((k) => indicatorEligible(k, p))
     if (!eligibleAny) continue
     eligibleCount += 1
-    const hasGap = keys.some(
-      (k) => indicatorEligible(k, p) && !(p.indicateursFaits ?? {})[k],
-    )
+    const hasGap = keys.some((k) => indicatorEligible(k, p) && !indicatorIsDone(p, k))
     if (hasGap) missingCount += 1
   }
   return { eligibleCount, missingCount }
@@ -181,8 +111,7 @@ export function statsPerCriterion(list) {
     for (const p of list) {
       if (!indicatorEligible(key, p)) continue
       eligibleCount += 1
-      const done = p.indicateursFaits ?? {}
-      if (!done[key]) missingCount += 1
+      if (!indicatorIsDone(p, key)) missingCount += 1
     }
     return {
       key,

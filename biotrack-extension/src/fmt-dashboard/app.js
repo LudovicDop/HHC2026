@@ -11,6 +11,7 @@ import {
   FMT_FLOOR_NOT_SEEN_EUR,
   funnelStats,
   indicatorEligible,
+  indicatorIsDone,
   INDICATOR_LABELS,
   MONTHS_VISIT_FORFAIT_LOSS,
   MONTHS_VISIT_WARNING,
@@ -41,7 +42,7 @@ function formatEur(n) {
 
 function vaccineMissing(p) {
   const v = ['grippe', 'covid', 'pneumocoque']
-  return v.some((k) => indicatorEligible(k, p) && !(p.indicateursFaits ?? {})[k])
+  return v.some((k) => indicatorEligible(k, p) && !indicatorIsDone(p, k))
 }
 
 function applyFilter(list, filterId) {
@@ -126,25 +127,26 @@ export function initFmtDashboard(root) {
   root.innerHTML = `
     <div class="fmt-shell">
       <section class="fmt-pv-intro" aria-labelledby="fmt-pv-title">
-        <h2 id="fmt-pv-title">Indicateurs part variable (FMT / ROSP)</h2>
+        <h2 id="fmt-pv-title">ROSP / indicateurs de prévention du FMT</h2>
         <p class="fmt-pv-intro__lead">
-          Vue cabinet centrée sur trois familles : vaccination ciblée, dépistages organisés et suivi glycémique des patients diabétiques.
+          Depuis le 1<sup>er</sup> janvier 2026, la convention fusionne l’historique ROSP et le forfait patientèle dans le <strong>Forfait Médecin Traitant (FMT)</strong>.
+          La <strong>part variable</strong> rémunère chaque indicateur de prévention validé : <strong>${EUR_PREVENTION_PER_GAP}&nbsp;€ par patient et par indicateur</strong>, <strong>sans plafond</strong> (données de démonstration).
         </p>
         <ul class="fmt-pv-intro__grid">
           <li class="fmt-pv-pillar">
             <p class="fmt-pv-pillar__title">Vaccination</p>
-            <p class="fmt-pv-pillar__indic">Grippe · COVID · Pneumocoque</p>
-            <p class="fmt-pv-pillar__pop">Population : ≥ 65 ans ou ALD</p>
+            <p class="fmt-pv-pillar__indic">Grippe · COVID · Pneumocoque · ROR · Méningocoque C · HPV</p>
+            <p class="fmt-pv-pillar__pop">Populations cibles selon tranches d’âge et facteurs de risque (voir tableau par catégorie).</p>
           </li>
           <li class="fmt-pv-pillar">
             <p class="fmt-pv-pillar__title">Dépistage</p>
-            <p class="fmt-pv-pillar__indic">Colorectal · Sein · Col de l’utérus</p>
-            <p class="fmt-pv-pillar__pop">Colorectal 50–74 ans ; sein / col utérus : femmes 25–65 ans</p>
+            <p class="fmt-pv-pillar__indic">Sein · Col utérus · Colorectal · Glycémie (MCVA) · MRC</p>
+            <p class="fmt-pv-pillar__pop">Dépistages organisés et bilans ciblés (âge, sexe, comorbidités).</p>
           </li>
           <li class="fmt-pv-pillar">
-            <p class="fmt-pv-pillar__title">Suivi chronique</p>
-            <p class="fmt-pv-pillar__indic">HbA1c tous les 6 mois</p>
-            <p class="fmt-pv-pillar__pop">Patients diabétiques</p>
+            <p class="fmt-pv-pillar__title">Suivi chronique &amp; enfance</p>
+            <p class="fmt-pv-pillar__indic">HbA1c · M9 · M24 · Bucco-dentaire</p>
+            <p class="fmt-pv-pillar__pop">Diabète, consultations obligatoires de l’enfant, suivi dentaire 3–24 ans.</p>
           </li>
         </ul>
       </section>
@@ -165,9 +167,9 @@ export function initFmtDashboard(root) {
           <p class="fmt-funnel-card__hint">Effectif de la liste chargée</p>
         </article>
         <article class="fmt-funnel-card">
-          <p class="fmt-funnel-card__label">Éligibles prévention FMT</p>
+          <p class="fmt-funnel-card__label">Éligibles ROSP / FMT</p>
           <p class="fmt-funnel-card__value">${funnel.eligiblePrevention}</p>
-          <p class="fmt-funnel-card__hint">Au moins une des trois familles (vaccination, dépistage, diabète) applicable</p>
+          <p class="fmt-funnel-card__hint">Au moins un indicateur de prévention (part variable) applicable</p>
         </article>
         <article class="fmt-funnel-card">
           <p class="fmt-funnel-card__label">À traiter</p>
@@ -179,7 +181,7 @@ export function initFmtDashboard(root) {
       <header class="fmt-header">
         <div>
           <h1>Optimiseur de FMT 2026</h1>
-          <p>Suivi part variable par catégorie. Ouvrez une ligne pour la liste des patients éligibles et leurs indicateurs manquants. Les montants FMT sont affichés uniquement sur demande.</p>
+          <p>Suivi des <strong>indicateurs de prévention du FMT</strong> (ex-ROSP) par grande famille. Ouvrez une ligne pour les patients éligibles et les manquants. Les montants indicatifs (${EUR_PREVENTION_PER_GAP}&nbsp;€ / indicateur validé, sans plafond) sont affichés sur demande.</p>
         </div>
       </header>
 
@@ -195,10 +197,10 @@ export function initFmtDashboard(root) {
         </button>
         <div class="fmt-financial-panel" id="fmt-financial-panel" hidden>
           <section class="fmt-context" aria-label="Contexte FMT">
-            <strong>FMT</strong> remplace le FPMT et la ROSP. Exemple pédagogique : patient âgé en ALD jusqu’à
+            <strong>FMT 2026</strong> : fusion ROSP + forfait patientèle. Part fixe illustrée : patient âgé en ALD jusqu’à
             <strong>100&nbsp;€/an</strong> ; au-delà de <strong>2 ans</strong> sans visite, le forfait peut tomber à
             <strong>${FMT_FLOOR_NOT_SEEN_EUR}&nbsp;€</strong> (manque à gagner illustratif <strong>95&nbsp;€</strong>).
-            Prévention : environ <strong>${EUR_PREVENTION_PER_GAP}&nbsp;€</strong> par indicateur manquant (éligible).
+            <strong>Part variable prévention</strong> : <strong>${EUR_PREVENTION_PER_GAP}&nbsp;€</strong> par patient et par indicateur ROSP/FMT <strong>validé</strong>, <strong>sans plafond</strong> — chaque manquant éligible représente le même montant potentiel à récupérer (démo).
           </section>
           <div class="fmt-kpis" id="fmt-kpis"></div>
           <section class="fmt-donum" aria-labelledby="fmt-donum-title">
@@ -480,7 +482,7 @@ export function initFmtDashboard(root) {
       <article class="fmt-kpi fmt-kpi--prev">
         <div class="fmt-kpi-label">Gains potentiels prévention</div>
         <div class="fmt-kpi-value">${formatEur(kpis.preventionPotentiel)}</div>
-        <div class="fmt-kpi-sub">≈ ${EUR_PREVENTION_PER_GAP}&nbsp;€ × indicateurs manquants (éligibles)</div>
+        <div class="fmt-kpi-sub">≈ ${EUR_PREVENTION_PER_GAP}&nbsp;€ × indicateurs manquants (éligibles), sans plafond national sur la part variable</div>
       </article>
       <article class="fmt-kpi fmt-kpi--maj">
         <div class="fmt-kpi-label">Majorations ZIP / C2S actives</div>
@@ -490,7 +492,7 @@ export function initFmtDashboard(root) {
     `
 
     footnoteEl.textContent = showFinancials
-      ? 'Données de démonstration. Les montants et règles d’éligibilité doivent être validés avec les textes officiels et votre caisse. Intégration agenda / dossier : à brancher sur votre back (ex. export JSON Go).'
+      ? 'Données de démonstration. ROSP / FMT : valider montants et périmètres avec les textes officiels et votre caisse. Rappel : 5 € par indicateur validé sans plafond est un ordre de grandeur pédagogique ici. Intégration dossier : à brancher sur votre back (ex. export JSON Go).'
       : 'Données de démonstration. Intégration agenda / dossier : à brancher sur votre back (ex. export JSON Go).'
 
     renderCriteriaTable()

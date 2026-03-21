@@ -1,6 +1,13 @@
+/* eslint-disable react/prop-types -- composants internes, pas de PropTypes */
 import { useEffect, useMemo, useState } from 'react'
+import {
+  categoryHasEligibleMissing,
+  indicatorEligible,
+  indicatorIsDone,
+  INDICATOR_LABELS,
+  SIDEBAR_PART_CATEGORIES,
+} from './shared/fmtPreventionModel.js'
 
-/** Mocks page / message extension — même logique d’éligibilité que fmtModel (éviter import fmt-dashboard). */
 const KNOWN_FROM_PAGE = {
   'PAT-004': {
     id: 'PAT-004',
@@ -9,7 +16,7 @@ const KNOWN_FROM_PAGE = {
     sexe: 'F',
     ald: false,
     diabetique: false,
-    indicateursFaits: { mammographie: true },
+    indicateursFaits: { sein: true },
   },
   'PAT-005': {
     id: 'PAT-005',
@@ -18,71 +25,19 @@ const KNOWN_FROM_PAGE = {
     sexe: 'M',
     ald: true,
     diabetique: false,
+    risquePneumocoqueSevere: true,
     indicateursFaits: { grippe: true, covid: true },
   },
 }
-
-const INDICATOR_LABELS = {
-  grippe: 'Grippe',
-  covid: 'COVID',
-  pneumocoque: 'Pneumocoque',
-  colorectal: 'Colorectal',
-  mammographie: 'Sein (mammographie)',
-  colUterus: 'Col de l’utérus',
-  hba1c: 'HbA1c (≤ 6 mois)',
-}
-
-const PART_CATEGORIES = [
-  {
-    sectionId: 'pv-vaccination',
-    title: 'Vaccination',
-    populationCible: 'Population cible : ≥ 65 ans ou ALD',
-    accent: 'teal',
-    keys: ['grippe', 'covid', 'pneumocoque'],
-  },
-  {
-    sectionId: 'pv-depistage',
-    title: 'Dépistage',
-    populationCible: 'Colorectal 50–74 ans ; sein / col utérus : femmes 25–65 ans',
-    accent: 'orange',
-    keys: ['colorectal', 'mammographie', 'colUterus'],
-  },
-  {
-    sectionId: 'pv-suivi',
-    title: 'Suivi chronique',
-    populationCible: 'Patients diabétiques — HbA1c tous les 6 mois',
-    accent: 'green',
-    keys: ['hba1c'],
-  },
-]
 
 function mapPatientFromExtension(patientId) {
   return KNOWN_FROM_PAGE[patientId] ?? null
 }
 
-function indicatorEligible(key, patient) {
-  const { age, sexe, ald, diabetique } = patient
-  switch (key) {
-    case 'grippe':
-    case 'covid':
-    case 'pneumocoque':
-      return age >= 65 || ald
-    case 'colorectal':
-      return age >= 50 && age <= 74
-    case 'mammographie':
-    case 'colUterus':
-      return sexe === 'F' && age >= 25 && age <= 65
-    case 'hba1c':
-      return Boolean(diabetique)
-    default:
-      return false
-  }
-}
-
 /** @returns {'ok' | 'missing' | 'na'} */
 function indicatorStatus(key, patient) {
   if (!indicatorEligible(key, patient)) return 'na'
-  if (patient.indicateursFaits?.[key]) return 'ok'
+  if (indicatorIsDone(patient, key)) return 'ok'
   return 'missing'
 }
 
@@ -216,12 +171,12 @@ const defaultPatient = {
   sexe: 'F',
   ald: false,
   diabetique: false,
-  indicateursFaits: { mammographie: true },
+  indicateursFaits: { sein: true },
 }
 
 export default function App() {
   // TODO LUDO: Intégration API — fetch FastAPI quand patient.id change (ou après PATIENT_DETECTED),
-  // puis setPatient avec profil complet (indicateursFaits, ald, diabetique) ; gestion chargement / erreurs.
+  // puis setPatient avec profil complet (indicateursFaits, flags risque, ageMois, mcva…) ; gestion erreurs.
   const [patient, setPatient] = useState(defaultPatient)
 
   const isExtensionContext =
@@ -245,18 +200,18 @@ export default function App() {
     return () => chrome.runtime.onMessage.removeListener(listener)
   }, [isExtensionContext])
 
-  const patientSummary = useMemo(
-    () =>
-      [
-        `${patient.age} ans`,
-        `Sexe ${patient.sexe}`,
-        patient.ald ? 'ALD' : null,
-        patient.diabetique ? 'Diabète' : null,
-      ]
-        .filter(Boolean)
-        .join(' · '),
-    [patient.age, patient.sexe, patient.ald, patient.diabetique],
-  )
+  const patientSummary = useMemo(() => {
+    const parts = [
+      Number.isFinite(patient.ageMois)
+        ? `${patient.ageMois} mois (${patient.age} an${patient.age > 1 ? 's' : ''})`
+        : `${patient.age} ans`,
+      `Sexe ${patient.sexe}`,
+      patient.ald ? 'ALD' : null,
+      patient.diabetique ? 'Diabète' : null,
+      patient.mcva ? 'MCVA' : null,
+    ]
+    return parts.filter(Boolean).join(' · ')
+  }, [patient])
 
   return (
     <div className="min-h-[100dvh] min-w-0 overflow-x-hidden bg-[var(--bg)] text-[var(--text)] antialiased">
@@ -279,7 +234,7 @@ export default function App() {
                 MedTrack AI
               </h1>
               <p className="mt-1.5 text-xs font-medium text-[var(--muted)]">
-                Part variable · vaccination · dépistage · suivi diabète
+                ROSP / indicateurs de prévention du FMT — part variable
               </p>
             </div>
             <span className="inline-flex w-fit shrink-0 rounded-full border border-teal-200/90 bg-[var(--row-selected)] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-[var(--accent)] shadow-[var(--shadow)]">
@@ -302,14 +257,14 @@ export default function App() {
           </CollapsibleSection>
 
           <div className="flex min-w-0 flex-1 flex-col gap-4 sm:gap-5">
-            {PART_CATEGORIES.map((cat) => (
+            {SIDEBAR_PART_CATEGORIES.map((cat) => (
               <CollapsibleSection
-                key={cat.sectionId}
+                key={`${cat.sectionId}-${patient.id}`}
                 sectionId={cat.sectionId}
                 title={cat.title}
                 subtitle={cat.populationCible}
                 accent={cat.accent}
-                defaultOpen
+                defaultOpen={categoryHasEligibleMissing(cat.keys, patient)}
               >
                 <IndicatorRows keys={cat.keys} patient={patient} />
               </CollapsibleSection>

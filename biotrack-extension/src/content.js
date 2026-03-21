@@ -73,15 +73,15 @@ function injectOpenExtensionPill() {
   const btn = document.createElement('button')
   btn.type = 'button'
   btn.className = 'pill'
-  btn.setAttribute('aria-label', 'Ouvrir l’optimiseur FMT 2026')
-  btn.title = 'Optimiseur FMT 2026 — nouvel onglet'
+  btn.setAttribute('aria-label', 'Ouvrir MedTrack AI — tableau FMT')
+  btn.title = 'MedTrack AI — optimiseur FMT (nouvel onglet)'
 
   const dot = document.createElement('span')
   dot.className = 'dot'
   dot.setAttribute('aria-hidden', 'true')
 
   const label = document.createElement('span')
-  label.textContent = 'FMT 2026'
+  label.textContent = 'MedTrack AI'
 
   btn.append(dot, label)
   btn.addEventListener('click', () => {

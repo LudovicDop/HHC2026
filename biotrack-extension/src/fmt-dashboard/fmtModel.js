@@ -17,6 +17,42 @@ export const INDICATOR_KEYS = [
   'buccoDentaire',
 ]
 
+/** Indicateurs part variable ciblés par le dashboard et le panneau latéral (hors puériculture / bucco). */
+export const PART_VARIABLE_KEYS = [
+  'grippe',
+  'covid',
+  'pneumocoque',
+  'colorectal',
+  'mammographie',
+  'colUterus',
+  'hba1c',
+]
+
+/** Trois familles affichées dans le tableau principal du dashboard. */
+export const PART_VARIABLE_CATEGORIES = [
+  {
+    id: 'vaccination',
+    title: 'Vaccination',
+    subtitle: 'Grippe · COVID · Pneumocoque',
+    populationCible: '≥ 65 ans ou ALD',
+    keys: ['grippe', 'covid', 'pneumocoque'],
+  },
+  {
+    id: 'depistage',
+    title: 'Dépistage',
+    subtitle: 'Colorectal · Sein · Col de l’utérus',
+    populationCible: 'Colorectal 50–74 ans ; sein / col utérus : femmes 25–65 ans',
+    keys: ['colorectal', 'mammographie', 'colUterus'],
+  },
+  {
+    id: 'suiviChronique',
+    title: 'Suivi chronique',
+    subtitle: 'HbA1c (tous les 6 mois)',
+    populationCible: 'Patients diabétiques',
+    keys: ['hba1c'],
+  },
+]
+
 export const INDICATOR_LABELS = {
   grippe: 'Grippe',
   covid: 'COVID',
@@ -79,9 +115,21 @@ export function missingIndicators(patient) {
   )
 }
 
+export function missingPartVariableIndicators(patient) {
+  const done = patient.indicateursFaits ?? {}
+  return PART_VARIABLE_KEYS.filter(
+    (key) => indicatorEligible(key, patient) && !done[key],
+  )
+}
+
 /** Au moins un indicateur FMT « part variable » applicable (population cible). */
 export function patientEligiblePrevention(patient) {
   return INDICATOR_KEYS.some((key) => indicatorEligible(key, patient))
+}
+
+/** Éligible à au moins un des indicateurs part variable du périmètre ROSP/FMT affiché. */
+export function patientEligiblePartVariable(patient) {
+  return PART_VARIABLE_KEYS.some((key) => indicatorEligible(key, patient))
 }
 
 /** Effectif liste — chiffres démo jusqu’au branchement back Go. */
@@ -97,9 +145,9 @@ export function funnelStats(list) {
   let eligiblePrevention = 0
   let withAnyGap = 0
   for (const p of list) {
-    if (patientEligiblePrevention(p)) {
+    if (patientEligiblePartVariable(p)) {
       eligiblePrevention += 1
-      if (missingIndicators(p).length > 0) withAnyGap += 1
+      if (missingPartVariableIndicators(p).length > 0) withAnyGap += 1
     }
   }
   return {
@@ -107,6 +155,22 @@ export function funnelStats(list) {
     eligiblePrevention,
     withAnyGap,
   }
+}
+
+/** Agrégats pour une famille (vaccination, dépistage, suivi chronique). */
+export function statsPerCategory(list, keys) {
+  let eligibleCount = 0
+  let missingCount = 0
+  for (const p of list) {
+    const eligibleAny = keys.some((k) => indicatorEligible(k, p))
+    if (!eligibleAny) continue
+    eligibleCount += 1
+    const hasGap = keys.some(
+      (k) => indicatorEligible(k, p) && !(p.indicateursFaits ?? {})[k],
+    )
+    if (hasGap) missingCount += 1
+  }
+  return { eligibleCount, missingCount }
 }
 
 /** Une ligne par critère : éligibles vs manquants (sans montants). */
@@ -144,7 +208,7 @@ export function dryLossEuros(patient) {
 }
 
 export function preventionPotentialEuros(patient) {
-  return missingIndicators(patient).length * EUR_PREVENTION_PER_GAP
+  return missingPartVariableIndicators(patient).length * EUR_PREVENTION_PER_GAP
 }
 
 export function totalManqueAGagnerEuros(patient) {
@@ -158,6 +222,7 @@ export function enrichPatient(patient) {
     _moisDepuisVisite: mois,
     _alerteVisite: visitWarning(mois),
     _manquants: missingIndicators(patient),
+    _manquantsPV: missingPartVariableIndicators(patient),
     _perteSeche: dryLossEuros(patient),
     _preventionPotentiel: preventionPotentialEuros(patient),
     _total: totalManqueAGagnerEuros(patient),
@@ -190,10 +255,11 @@ export function reminderText(patient) {
   } else if (patient._alerteVisite === 'warn') {
     lignes.push('', 'Votre dernière consultation approche les 2 ans : pensez à programmer une visite.')
   }
-  if (patient._manquants.length) {
+  const gaps = patient._manquantsPV ?? missingPartVariableIndicators(patient)
+  if (gaps.length) {
     lignes.push(
       '',
-      `Actions suggérées : ${patient._manquants.map((k) => INDICATOR_LABELS[k]).join(', ')}.`,
+      `Actions suggérées : ${gaps.map((k) => INDICATOR_LABELS[k]).join(', ')}.`,
     )
   }
   lignes.push('', 'Cordialement,', 'Cabinet')

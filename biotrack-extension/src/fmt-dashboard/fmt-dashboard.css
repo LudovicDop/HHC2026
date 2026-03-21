@@ -143,6 +143,105 @@ body {
   font-style: italic;
 }
 
+.fmt-pv-intro {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 1.15rem 1.25rem 1.25rem;
+  margin-bottom: 1.5rem;
+  box-shadow: var(--shadow);
+}
+
+.fmt-pv-intro h2 {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.fmt-pv-intro__lead {
+  margin: 0.45rem 0 1rem;
+  font-size: 0.95rem;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.fmt-pv-intro__grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.65rem;
+}
+
+@media (min-width: 768px) {
+  .fmt-pv-intro__grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.75rem;
+  }
+}
+
+.fmt-pv-pillar {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 0.85rem 1rem;
+  background: color-mix(in srgb, var(--bg) 55%, var(--surface));
+}
+
+.fmt-pv-pillar__title {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.fmt-pv-pillar__indic {
+  margin: 0.35rem 0 0;
+  font-size: 0.84rem;
+  color: var(--text);
+  line-height: 1.35;
+}
+
+.fmt-pv-pillar__pop {
+  margin: 0.4rem 0 0;
+  font-size: 0.8rem;
+  color: var(--muted);
+  line-height: 1.4;
+}
+
+.fmt-cat-cell {
+  display: inline-block;
+  vertical-align: top;
+  max-width: min(100%, 28rem);
+}
+
+.fmt-cat-cell strong {
+  display: block;
+  font-size: 1.02rem;
+}
+
+.fmt-cat-cell__sub {
+  display: block;
+  margin-top: 0.25rem;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.fmt-cat-cell__population {
+  display: block;
+  margin-top: 0.35rem;
+  font-size: 0.8rem;
+  color: var(--muted);
+  line-height: 1.35;
+}
+
+.fmt-crit-master td:first-child {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.35rem;
+}
+
 .fmt-agenda-banner {
   background: var(--surface);
   border: 1px solid var(--border);
@@ -264,10 +363,6 @@ body {
 
 .fmt-crit-master--open {
   background: color-mix(in srgb, var(--accent) 12%, transparent);
-}
-
-.fmt-crit-master td:first-child {
-  font-size: 1.02rem;
 }
 
 .fmt-crit-chevron {

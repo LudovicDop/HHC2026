@@ -14,8 +14,8 @@ import {
   INDICATOR_LABELS,
   MONTHS_VISIT_FORFAIT_LOSS,
   MONTHS_VISIT_WARNING,
-  reminderText,
-  statsPerCriterion,
+  PART_VARIABLE_CATEGORIES,
+  statsPerCategory,
 } from './fmtModel.js'
 
 function formatDate(iso) {
@@ -41,7 +41,7 @@ function formatEur(n) {
 
 function vaccineMissing(p) {
   const v = ['grippe', 'covid', 'pneumocoque']
-  return p._manquants.some((k) => v.includes(k))
+  return v.some((k) => indicatorEligible(k, p) && !(p.indicateursFaits ?? {})[k])
 }
 
 function applyFilter(list, filterId) {
@@ -73,12 +73,14 @@ function visitPill(p) {
   return { className: 'fmt-pill fmt-pill--ok', text: 'À jour' }
 }
 
-function buildFilterOptions(showFinancials) {
+function buildFilterOptions(showFinancials, expandedCategoryId) {
   const opts = [{ value: 'all', label: 'Tous les patients' }]
   if (showFinancials) {
     opts.push({ value: 'perte50', label: 'Priorité : perte > 50 €' })
   }
-  opts.push({ value: 'vaccin', label: 'Action : à vacciner' })
+  if (expandedCategoryId === 'vaccination') {
+    opts.push({ value: 'vaccin', label: 'Action : à vacciner (Grippe / COVID / Pneumo)' })
+  }
   return opts
 }
 
@@ -87,7 +89,7 @@ export function initFmtDashboard(root) {
   let filterId = 'all'
   let showFinancials = false
   /** @type {string | null} */
-  let expandedCriterionKey = null
+  let expandedCategoryId = null
   const cabinet = { ...CABINET_DEMO }
 
   const toast = document.createElement('div')
@@ -123,32 +125,26 @@ export function initFmtDashboard(root) {
 
   root.innerHTML = `
     <div class="fmt-shell">
-      <section class="fmt-admin-summary" aria-labelledby="fmt-admin-title">
-        <h2 id="fmt-admin-title">Résumé des demandes identifiées</h2>
-        <p class="fmt-admin-summary__subtitle">
-          Aperçu administratif — suggestion de l’IA à valider par le médecin
+      <section class="fmt-pv-intro" aria-labelledby="fmt-pv-title">
+        <h2 id="fmt-pv-title">Indicateurs part variable (FMT / ROSP)</h2>
+        <p class="fmt-pv-intro__lead">
+          Vue cabinet centrée sur trois familles : vaccination ciblée, dépistages organisés et suivi glycémique des patients diabétiques.
         </p>
-        <ul class="fmt-admin-summary__list">
-          <li class="fmt-admin-card">
-            <p class="fmt-admin-card__title">Message patient prioritaire (1)</p>
-            <div class="fmt-admin-card__row">
-              <span class="fmt-admin-badge fmt-admin-badge--prio">Prioritaire</span>
-            </div>
-            <p class="fmt-admin-card__hint">Priorité suggérée par l’IA – à valider par le médecin</p>
+        <ul class="fmt-pv-intro__grid">
+          <li class="fmt-pv-pillar">
+            <p class="fmt-pv-pillar__title">Vaccination</p>
+            <p class="fmt-pv-pillar__indic">Grippe · COVID · Pneumocoque</p>
+            <p class="fmt-pv-pillar__pop">Population : ≥ 65 ans ou ALD</p>
           </li>
-          <li class="fmt-admin-card">
-            <p class="fmt-admin-card__title">Ordonnances à renouveler (2)</p>
-            <div class="fmt-admin-card__row">
-              <span class="fmt-admin-badge fmt-admin-badge--review">À relire rapidement</span>
-            </div>
-            <p class="fmt-admin-card__hint">Propositions IA en attente de validation</p>
+          <li class="fmt-pv-pillar">
+            <p class="fmt-pv-pillar__title">Dépistage</p>
+            <p class="fmt-pv-pillar__indic">Colorectal · Sein · Col de l’utérus</p>
+            <p class="fmt-pv-pillar__pop">Colorectal 50–74 ans ; sein / col utérus : femmes 25–65 ans</p>
           </li>
-          <li class="fmt-admin-card">
-            <p class="fmt-admin-card__title">Messages professionnels (4)</p>
-            <div class="fmt-admin-card__row">
-              <span class="fmt-admin-badge fmt-admin-badge--wait">Peut attendre</span>
-            </div>
-            <p class="fmt-admin-card__hint">Laboratoires, médecins, pharmacies</p>
+          <li class="fmt-pv-pillar">
+            <p class="fmt-pv-pillar__title">Suivi chronique</p>
+            <p class="fmt-pv-pillar__indic">HbA1c tous les 6 mois</p>
+            <p class="fmt-pv-pillar__pop">Patients diabétiques</p>
           </li>
         </ul>
       </section>
@@ -171,7 +167,7 @@ export function initFmtDashboard(root) {
         <article class="fmt-funnel-card">
           <p class="fmt-funnel-card__label">Éligibles prévention FMT</p>
           <p class="fmt-funnel-card__value">${funnel.eligiblePrevention}</p>
-          <p class="fmt-funnel-card__hint">Au moins un critère « part variable » applicable</p>
+          <p class="fmt-funnel-card__hint">Au moins une des trois familles (vaccination, dépistage, diabète) applicable</p>
         </article>
         <article class="fmt-funnel-card">
           <p class="fmt-funnel-card__label">À traiter</p>
@@ -183,7 +179,7 @@ export function initFmtDashboard(root) {
       <header class="fmt-header">
         <div>
           <h1>Optimiseur de FMT 2026</h1>
-          <p>Suivi des patients et de la prévention. Les montants FMT sont affichés uniquement sur demande.</p>
+          <p>Suivi part variable par catégorie. Ouvrez une ligne pour la liste des patients éligibles et leurs indicateurs manquants. Les montants FMT sont affichés uniquement sur demande.</p>
         </div>
       </header>
 
@@ -219,22 +215,21 @@ export function initFmtDashboard(root) {
           Filtre
           <select class="fmt-select" id="fmt-filter" aria-label="Filtre liste"></select>
         </label>
-        <button type="button" class="fmt-btn fmt-btn-primary" id="fmt-reminder" disabled>Générer rappel patient</button>
       </div>
 
       <section class="fmt-criteria-section" aria-labelledby="fmt-criteria-title">
-        <h2 id="fmt-criteria-title" class="fmt-criteria-section__title">Tableau par critère</h2>
+        <h2 id="fmt-criteria-title" class="fmt-criteria-section__title">Tableau par catégorie</h2>
         <p class="fmt-criteria-hint">
-          Cliquez sur une ligne pour afficher le suivi des patients éligibles à ce critère et leurs informations médicales.
-          Les filtres ci-dessus s’appliquent au panneau ouvert.
+          Cliquez sur une catégorie pour afficher les patients concernés et les indicateurs part variable manquants dans cette famille.
+          Le filtre « à vacciner » n’apparaît que lorsque la catégorie Vaccination est ouverte.
         </p>
         <div class="fmt-table-wrap">
           <table class="fmt-table-criteria" id="fmt-table-criteria">
             <thead>
               <tr>
-                <th>Indicateur</th>
+                <th>Catégorie</th>
                 <th>Patients éligibles</th>
-                <th>Manquants</th>
+                <th>Avec au moins un manquant</th>
               </tr>
             </thead>
             <tbody id="fmt-tbody-criteria"></tbody>
@@ -251,7 +246,6 @@ export function initFmtDashboard(root) {
   const financialToggle = root.querySelector('#fmt-financial-toggle')
   const tbodyCriteria = root.querySelector('#fmt-tbody-criteria')
   const filterEl = root.querySelector('#fmt-filter')
-  const reminderBtn = root.querySelector('#fmt-reminder')
   const footnoteEl = root.querySelector('#fmt-footnote')
 
   financialToggle.addEventListener('click', () => {
@@ -267,20 +261,6 @@ export function initFmtDashboard(root) {
     render()
   })
 
-  reminderBtn.addEventListener('click', async () => {
-    const list = MOCK_PATIENTS.map((p) => enrichPatient(p))
-    const p = list.find((x) => x.id === selectedId)
-    if (!p) return
-    const { body } = reminderText(p)
-    try {
-      await navigator.clipboard.writeText(body)
-      showToast('Texte copié dans le presse-papiers')
-    } catch {
-      showToast('Copie impossible (HTTPS ou permission) — ouvrez la console ou contactez l’admin')
-      console.info('Rappel patient\n\n', body)
-    }
-  })
-
   root.addEventListener('click', (e) => {
     const btn = e.target.closest?.('[data-dossier-id]')
     if (!btn) return
@@ -291,7 +271,7 @@ export function initFmtDashboard(root) {
   })
 
   /** Tableau unique : suivi + synthèse médicale (une ligne par patient). */
-  function buildUnifiedPatientTable(theadEl, tbodyEl, patients, showEur) {
+  function buildUnifiedPatientTable(theadEl, tbodyEl, patients, showEur, categoryKeys) {
     const thEur = showEur ? '<th>Manque à gagner</th>' : ''
     theadEl.innerHTML = `
       <tr>
@@ -311,14 +291,15 @@ export function initFmtDashboard(root) {
       tr.dataset.selected = String(p.id === selectedId)
       const pill = visitPill(p)
 
+      const manquantsCat =
+        categoryKeys?.length > 0
+          ? p._manquantsPV.filter((k) => categoryKeys.includes(k))
+          : p._manquantsPV
       const badgesHtml =
-        p._manquants.length === 0
-          ? '<span style="color:var(--muted)">À jour</span>'
-          : p._manquants
-              .map(
-                (k) =>
-                  `<span class="fmt-badge">${INDICATOR_LABELS[k]}</span>`,
-              )
+        manquantsCat.length === 0
+          ? '<span style="color:var(--muted)">À jour (cette catégorie)</span>'
+          : manquantsCat
+              .map((k) => `<span class="fmt-badge">${INDICATOR_LABELS[k]}</span>`)
               .join(' ')
 
       const tdInd = document.createElement('td')
@@ -381,33 +362,37 @@ export function initFmtDashboard(root) {
   }
 
   function renderCriteriaTable() {
-    const stats = statsPerCriterion(MOCK_PATIENTS)
     const enrichedAll = MOCK_PATIENTS.map((p) => enrichPatient(p))
 
     tbodyCriteria.replaceChildren()
 
-    for (const row of stats) {
-      const isOpen = expandedCriterionKey === row.key
+    for (const cat of PART_VARIABLE_CATEGORIES) {
+      const row = statsPerCategory(MOCK_PATIENTS, cat.keys)
+      const isOpen = expandedCategoryId === cat.id
 
       const trMaster = document.createElement('tr')
       trMaster.className = `fmt-crit-master${isOpen ? ' fmt-crit-master--open' : ''}`
-      trMaster.dataset.criterionKey = row.key
+      trMaster.dataset.categoryId = cat.id
       trMaster.setAttribute('role', 'button')
       trMaster.tabIndex = 0
       trMaster.setAttribute('aria-expanded', String(isOpen))
       trMaster.innerHTML = `
         <td>
           <span class="fmt-crit-chevron" aria-hidden="true">${isOpen ? '▼' : '▶'}</span>
-          <strong>${row.label}</strong>
+          <div class="fmt-cat-cell">
+            <strong>${cat.title}</strong>
+            <span class="fmt-cat-cell__sub">${cat.subtitle}</span>
+            <span class="fmt-cat-cell__population">${cat.populationCible}</span>
+          </div>
         </td>
         <td>${row.eligibleCount}</td>
         <td>${row.missingCount}</td>
       `
 
       const activate = () => {
-        const next = expandedCriterionKey === row.key ? null : row.key
-        if (next !== expandedCriterionKey) selectedId = null
-        expandedCriterionKey = next
+        const next = expandedCategoryId === cat.id ? null : cat.id
+        if (next !== expandedCategoryId) selectedId = null
+        expandedCategoryId = next
         render()
       }
 
@@ -430,7 +415,7 @@ export function initFmtDashboard(root) {
       td.className = 'fmt-crit-panel-cell'
 
       if (isOpen) {
-        const pool = enrichedAll.filter((p) => indicatorEligible(row.key, p))
+        const pool = enrichedAll.filter((p) => cat.keys.some((k) => indicatorEligible(k, p)))
         const filtered = applyFilter(pool, filterId)
 
         const inner = document.createElement('div')
@@ -439,7 +424,7 @@ export function initFmtDashboard(root) {
         const suiviWrap = document.createElement('div')
         const hSuivi = document.createElement('h3')
         hSuivi.className = 'fmt-subsection-title'
-        hSuivi.textContent = 'Suivi patients (critère sélectionné)'
+        hSuivi.textContent = `Suivi patients — ${cat.title}`
         suiviWrap.append(hSuivi)
 
         const twSuivi = document.createElement('div')
@@ -452,7 +437,7 @@ export function initFmtDashboard(root) {
         twSuivi.append(tblSuivi)
         suiviWrap.append(twSuivi)
 
-        buildUnifiedPatientTable(theadSuivi, tbodySuivi, filtered, showFinancials)
+        buildUnifiedPatientTable(theadSuivi, tbodySuivi, filtered, showFinancials, cat.keys)
 
         inner.append(suiviWrap)
         td.append(inner)
@@ -470,7 +455,7 @@ export function initFmtDashboard(root) {
       ? 'Masquer les indicateurs financiers'
       : 'Afficher les indicateurs financiers (montants indicatifs)'
 
-    const opts = buildFilterOptions(showFinancials)
+    const opts = buildFilterOptions(showFinancials, expandedCategoryId)
     if (!opts.some((o) => o.value === filterId)) {
       filterId = 'all'
     }
@@ -509,16 +494,6 @@ export function initFmtDashboard(root) {
       : 'Données de démonstration. Intégration agenda / dossier : à brancher sur votre back (ex. export JSON Go).'
 
     renderCriteriaTable()
-
-    let panelPatients = []
-    if (expandedCriterionKey) {
-      const pool = enriched.filter((p) => indicatorEligible(expandedCriterionKey, p))
-      panelPatients = applyFilter(pool, filterId)
-    }
-    const canRemind =
-      Boolean(selectedId) &&
-      panelPatients.some((p) => p.id === selectedId)
-    reminderBtn.disabled = !canRemind
   }
 
   render()

@@ -1,10 +1,11 @@
 {
   "manifest_version": 3,
-  "name": "BioTrack Santé",
+  "name": "MedTrack AI",
   "version": "1.0",
   "permissions": ["sidePanel", "activeTab", "scripting"],
+  "host_permissions": ["http://localhost/*", "http://127.0.0.1/*"],
   "action": {
-    "default_title": "Ouvrir BioTrack"
+    "default_title": "Ouvrir MedTrack AI"
   },
   "background": {
     "service_worker": "src/background.js",

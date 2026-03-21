@@ -1,3 +1,29 @@
+/* Aligné sur biotrack-extension/src/fmt-dashboard/fmt-dashboard.css :root — resynchroniser si les tokens changent */
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+  :root {
+    --bg: #f4f7f9;
+    --surface: #ffffff;
+    --text: #0f172a;
+    --muted: #64748b;
+    --border: #e2e8f0;
+    --accent: #0d9488;
+    --kpi-loss: #b91c1c;
+    --kpi-loss-bg: #fef2f2;
+    --kpi-prev: #c2410c;
+    --kpi-prev-bg: #fff7ed;
+    --kpi-maj: #15803d;
+    --kpi-maj-bg: #f0fdf4;
+    --shadow: 0 1px 2px rgb(15 23 42 / 0.06);
+    --row-selected: #ecfeff;
+  }
+
+  body {
+    font-family: 'DM Sans', system-ui, sans-serif;
+  }
+}
